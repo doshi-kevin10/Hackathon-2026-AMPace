@@ -21,6 +21,7 @@
 - Synonyms added: "sot revenue"→Revenue, "ui conversions"→Conversions (kevin's real workbook headers)
 - SYNCED: 8 tables from "hackathon Spread Sheet .xlsx" (Overstock 201, BBB 1661, Groupon 2/30/31/30, AA Oct 31, AA Nov 30 rows) — verified via SELECT
 - 24/24 vitest (5 new sync SQL tests), build green, browser sweep clean
+- Live loop verified end-to-end: UPDATE on Databricks -> frontend cell changed automatically in 27s (30s poll, `LIVE_POLL_MS`); revert also confirmed, data restored
 
 ### 2026-07-16 - Canonical ad-metrics columns, Excel-style formulas & grid
 - Canonical column vocabulary (Date, Day, Total Adspend, Clicks, CPC, Revenue, Conversions, ROAS, CVR): headers matched via synonyms and renamed (original kept in `originalHeader`); Day/CPC/ROAS/CVR auto-derived when inputs exist; canonical columns ordered/shown first (others hidden by default, toggleable in Columns menu). Applies only when ≥2 canonical columns match — files: src/lib/excel/canonicalize.ts
