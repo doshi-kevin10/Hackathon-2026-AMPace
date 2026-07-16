@@ -13,6 +13,16 @@ export interface DayGoalStatus {
 const findCol = (table: AnalyticsTable, name: string) => table.columns.find((c) => c.name === name);
 
 /**
+ * Which metric this company can be measured by — one or the other, never
+ * both. Some companies have their ROAS column relabeled to CPA at the read
+ * layer (real per-row values, not just a display change), so the presence of
+ * a "CPA" column is the source of truth, not a user choice.
+ */
+export function metricForTable(table: AnalyticsTable): Goal["metric"] {
+  return findCol(table, "CPA") ? "CPA" : "ROAS";
+}
+
+/**
  * Band a value against the target, as a fraction of target (ratio = value / target).
  *
  * ROAS (higher is better) — banded both directions, per the account manager's
@@ -38,15 +48,17 @@ function bandFor(ratio: number, metric: Goal["metric"]): GoalBand {
 }
 
 /**
- * Per-day value + goal band for the chosen metric. ROAS reads the existing
- * column; CPA isn't a stored column (Total Adspend / Conversions), so it's
- * computed on the fly from the two columns that are.
+ * Per-day value + goal band for the chosen metric. Reads a "CPA" column
+ * directly when the company has one (relabeled at the read layer); otherwise
+ * ROAS reads the existing column, or CPA is computed on the fly from Total
+ * Adspend / Conversions.
  */
 export function computeDailyGoalStatus(table: AnalyticsTable, goal: Goal): DayGoalStatus[] {
   const dateCol = findCol(table, "Date");
   if (!dateCol) return [];
 
   const roasCol = findCol(table, "ROAS");
+  const cpaCol = findCol(table, "CPA");
   const adspendCol = findCol(table, "Total Adspend");
   const conversionsCol = findCol(table, "Conversions");
 
@@ -58,6 +70,9 @@ export function computeDailyGoalStatus(table: AnalyticsTable, goal: Goal): DayGo
     let value: number | null = null;
     if (goal.metric === "ROAS" && roasCol) {
       const n = Number(row[roasCol.id]?.normalized);
+      value = Number.isFinite(n) ? n : null;
+    } else if (goal.metric === "CPA" && cpaCol) {
+      const n = Number(row[cpaCol.id]?.normalized);
       value = Number.isFinite(n) ? n : null;
     } else if (goal.metric === "CPA" && adspendCol && conversionsCol) {
       const spend = Number(row[adspendCol.id]?.normalized);

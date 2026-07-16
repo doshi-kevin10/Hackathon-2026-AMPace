@@ -23,8 +23,12 @@ test("analyst logs in, sees company datasets, and opens live analytics", async (
   await firstCard.click();
   await expect(page).toHaveURL(/\/datasets\//);
 
-  // Live grid renders with canonical metric columns.
+  // Analytics page loads live (KPI row + freshness indicator).
+  await expect(page.getByText("auto-refreshes every 30s")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Total adspend", { exact: true })).toBeVisible();
+
+  // The Data tab shows the live grid with canonical metric columns.
+  await page.getByRole("tab", { name: "Data" }).click();
   await expect(page.locator("table[role=grid]")).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("auto-refreshes every 30s")).toBeVisible();
   await expect(page.getByRole("button", { name: /Total Adspend/ })).toBeVisible();
 });

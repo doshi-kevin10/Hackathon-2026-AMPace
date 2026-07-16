@@ -5,17 +5,19 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { compactNumber } from "@/components/charts/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AnalyticsTable } from "@/lib/analytics/chart-data";
-import { computeDailyGoalStatus } from "@/lib/analytics/goal-status";
-import { GOAL_METRICS, type Goal, type GoalMetric } from "@/lib/schemas/goal";
+import { computeDailyGoalStatus, metricForTable } from "@/lib/analytics/goal-status";
+import type { Goal, GoalMetric } from "@/lib/schemas/goal";
 
 const formatterFor = (metric: GoalMetric) => (metric === "CPA" ? compactNumber : (n: number) => `${n.toFixed(2)}×`);
 
 export function GoalTracker({ datasetName, table }: { datasetName: string; table: AnalyticsTable }) {
+  // A company tracks ROAS or CPA — never both, and never a user's free choice.
+  // The data layer already decides this (a "CPA" column only exists for
+  // companies relabeled at the read layer), so the tracker just follows it.
+  const metric = metricForTable(table);
   const [goal, setGoal] = useState<Goal | null | undefined>(undefined); // undefined = loading
   const [editing, setEditing] = useState(false);
-  const [metric, setMetric] = useState<GoalMetric>("ROAS");
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,10 +29,7 @@ export function GoalTracker({ datasetName, table }: { datasetName: string; table
       .then((body) => {
         if (cancelled) return;
         setGoal(body.goal ?? null);
-        if (body.goal) {
-          setMetric(body.goal.metric);
-          setTarget(String(body.goal.target));
-        }
+        if (body.goal) setTarget(String(body.goal.target));
       })
       .catch(() => !cancelled && setGoal(null));
     return () => {
@@ -82,19 +81,10 @@ export function GoalTracker({ datasetName, table }: { datasetName: string; table
         </p>
         <div className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-4">
           <div className="grid gap-1">
-            <label className="text-xs text-muted-foreground">Measure by</label>
-            <Select value={metric} onValueChange={(v) => v && setMetric(v as GoalMetric)}>
-              <SelectTrigger className="h-8 w-28">
-                <SelectValue>{(v: string) => v}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {GOAL_METRICS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <span className="text-xs text-muted-foreground">This company tracks</span>
+            <span className="flex h-8 items-center rounded-md border border-border bg-muted px-2.5 text-sm font-medium">
+              {metric}
+            </span>
           </div>
           <div className="grid gap-1">
             <label className="text-xs text-muted-foreground">Target {metric === "ROAS" ? "(e.g. 2.5)" : "($, e.g. 15)"}</label>

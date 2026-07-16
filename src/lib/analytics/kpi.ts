@@ -8,6 +8,8 @@ export interface KpiTotals {
   conversions: number | null;
   roas: number | null;
   cvr: number | null;
+  /** Total Adspend / Conversions — the metric companies tracking CPA use instead of ROAS. */
+  cpa: number | null;
 }
 
 /** Aggregate KPIs over a table's rows. Ratios come from totals (not averaged), so they stay correct under filtering. */
@@ -35,6 +37,7 @@ export function computeKpiTotals(table: AnalyticsTable): KpiTotals {
   const cpc = adspend != null && clicks ? adspend / clicks : null;
   const roas = revenue != null && adspend ? revenue / adspend : null;
   const cvr = conversions != null && clicks ? conversions / clicks : null;
+  const cpa = adspend != null && conversions ? adspend / conversions : null;
 
-  return { adspend, clicks, cpc, revenue, conversions, roas, cvr };
+  return { adspend, clicks, cpc, revenue, conversions, roas, cvr, cpa };
 }

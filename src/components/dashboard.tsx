@@ -62,38 +62,64 @@ export function Dashboard() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {state.datasets.map((d) => (
             <Link key={d.name} href={`/datasets/${d.name}`} className="group focus-visible:outline-none">
-              <Card className="h-full overflow-hidden transition-all group-hover:-translate-y-0.5 group-hover:border-primary/50 group-hover:shadow-md group-focus-visible:border-primary">
-                <CardContent className="flex h-full flex-col gap-4 p-6">
+              <Card className="h-full overflow-hidden border-primary/10 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-lg group-hover:shadow-primary/5 group-focus-visible:border-primary">
+                {/* Blue accent strip */}
+                <div className="h-1.5 bg-gradient-to-r from-primary to-primary/40" aria-hidden />
+                <CardContent className="flex h-full flex-col gap-5 p-6">
                   <div className="flex items-center gap-3">
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-base font-semibold text-primary ring-1 ring-inset ring-primary/10">
+                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-base font-semibold text-primary ring-1 ring-inset ring-primary/15">
                       {d.label.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-lg font-semibold leading-tight">{d.label}</p>
                       <p className="text-xs text-muted-foreground">Advertising performance</p>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-sm">
-                    <div>
-                      <p className="font-semibold tabular-nums">{d.rowCount.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">days of data</p>
-                    </div>
-                    {d.latestDate && (
-                      <div>
-                        <p className="font-semibold tabular-nums">{d.latestDate}</p>
-                        <p className="text-xs text-muted-foreground">latest</p>
-                      </div>
-                    )}
-                    <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
+                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
                       Live
                     </span>
                   </div>
 
-                  <span className="mt-auto text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                    Open analytics →
-                  </span>
+                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3">
+                    <div>
+                      {d.usesCpa ? (
+                        <>
+                          <p className="text-sm font-semibold tabular-nums">
+                            {d.avgCpa != null ? `$${d.avgCpa.toLocaleString("en", { maximumFractionDigits: 2 })}` : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Avg CPA</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold tabular-nums">
+                            {d.avgRoas != null ? `${d.avgRoas.toLocaleString("en", { maximumFractionDigits: 1 })}×` : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Avg ROAS</p>
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {d.totalAdspend != null
+                          ? `$${(d.totalAdspend / 1000).toLocaleString("en", { maximumFractionDigits: 0 })}K`
+                          : "—"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">Total spend</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold tabular-nums">{d.rowCount.toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground">Days</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {d.latestDate ? `Latest ${d.latestDate}` : "No data yet"}
+                    </span>
+                    <span className="font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                      Open analytics →
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </Link>

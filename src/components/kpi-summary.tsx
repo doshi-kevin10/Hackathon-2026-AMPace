@@ -13,14 +13,21 @@ export function KpiSummary({
   rows: Record<string, CellValue>[];
 }) {
   const kpis = useMemo(() => {
-    const { adspend, clicks, cpc, revenue, conversions, roas, cvr } = computeKpiTotals({ columns, rows });
+    const { adspend, clicks, cpc, revenue, conversions, roas, cvr, cpa } = computeKpiTotals({ columns, rows });
+
+    // Companies that track CPA (relabeled at the read layer) show CPA, not ROAS.
+    const tracksCpa = columns.some((c) => c.name === "CPA");
+    const headline = tracksCpa
+      ? { label: "CPA", value: cpa, fmt: "usd" as const }
+      : { label: "ROAS", value: roas, fmt: "x" as const };
+
     return [
       { label: "Total adspend", value: adspend, fmt: "usd" as const },
       { label: "Clicks", value: clicks, fmt: "int" as const },
       { label: "CPC", value: cpc, fmt: "usd" as const },
       { label: "Revenue", value: revenue, fmt: "usd" as const },
       { label: "Conversions", value: conversions, fmt: "int" as const },
-      { label: "ROAS", value: roas, fmt: "x" as const },
+      headline,
       { label: "CVR", value: cvr, fmt: "pct" as const },
     ];
   }, [columns, rows]);
