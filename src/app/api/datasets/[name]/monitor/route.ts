@@ -3,7 +3,7 @@ import { claimNewAlerts } from "@/lib/alerts/alert-store";
 import { isSlackConfigured, sendSlackAlert } from "@/lib/alerts/slack";
 import { detectAnomalies } from "@/lib/analytics/anomalies";
 import { requireUser } from "@/lib/auth/server";
-import { getDatasetRows, isValidDatasetName, listDatasets } from "@/lib/databricks/analytics";
+import { getDatasetRows, isValidDatasetName } from "@/lib/databricks/analytics";
 import { databricksConfigured, DatabricksError } from "@/lib/databricks/client";
 import { fetchCompanyNews } from "@/lib/news/google-news";
 import { analyzeNewsRelevance, isRelevanceEngineConfigured } from "@/lib/news/relevance";
@@ -39,13 +39,9 @@ export async function GET(
   let company: string;
   let table: Awaited<ReturnType<typeof getDatasetRows>>;
   try {
-    const [datasets, rows] = await Promise.all([listDatasets(), getDatasetRows(name)]);
-    const dataset = datasets.find((d) => d.name === name);
-    if (!dataset) {
-      return NextResponse.json({ error: { code: "NOT_FOUND", message: "Unknown dataset" } }, { status: 404 });
-    }
-    company = dataset.company;
-    table = rows;
+    // One dataset = one company table, so the dataset's own label is the company name.
+    table = await getDatasetRows(name);
+    company = table.label;
   } catch (err) {
     const message = err instanceof DatabricksError ? err.message : "Could not load the dataset";
     return NextResponse.json({ error: { code: "LOAD_FAILED", message } }, { status: 502 });

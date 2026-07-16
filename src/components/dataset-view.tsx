@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CompanyMonitor } from "@/components/analytics/company-monitor";
 import { hasChartableData, TableAnalytics } from "@/components/analytics/table-analytics";
+import { KpiSummary } from "@/components/kpi-summary";
 import { DataTable } from "@/components/tables/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,8 @@ interface LiveData {
   rows: Record<string, CellValue>[];
   databricksTable: string;
   fetchedAt: string;
+  /** One dataset = one company now, so this doubles as the company name. */
   label: string;
-  company: string;
 }
 
 export function DatasetView({ name }: { name: string }) {
@@ -67,7 +68,7 @@ export function DatasetView({ name }: { name: string }) {
     [data]
   );
 
-  // Client-side date-range filter (instant — no server round trip). Feeds both the grid and the charts.
+  // Client-side date-range filter (instant — no server round trip). Feeds the grid, KPIs, and charts.
   const filteredRows = useMemo(() => {
     if (!data) return [];
     if (!dateColId || (!from && !to)) return data.rows;
@@ -152,6 +153,8 @@ export function DatasetView({ name }: { name: string }) {
             </span>
           </div>
 
+          <KpiSummary columns={data.columns} rows={filteredRows} />
+
           <Tabs defaultValue="analytics">
             <TabsList className="mb-4">
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -164,7 +167,7 @@ export function DatasetView({ name }: { name: string }) {
               ) : (
                 <p className="text-sm text-muted-foreground">No numeric data to chart yet.</p>
               )}
-              <CompanyMonitor datasetName={name} company={data.company} />
+              <CompanyMonitor datasetName={name} company={data.label} />
             </TabsContent>
 
             <TabsContent value="data">

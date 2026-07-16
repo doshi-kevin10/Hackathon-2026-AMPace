@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,25 +11,8 @@ type State =
   | { kind: "error"; message: string }
   | { kind: "ready"; datasets: Dataset[] };
 
-/** Group datasets by company, preserving alphabetical company + dataset order. */
-function groupByCompany(datasets: Dataset[]): { company: string; items: Dataset[] }[] {
-  const map = new Map<string, Dataset[]>();
-  for (const d of datasets) {
-    const list = map.get(d.company) ?? [];
-    list.push(d);
-    map.set(d.company, list);
-  }
-  return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([company, items]) => ({ company, items }));
-}
-
 export function Dashboard() {
   const [state, setState] = useState<State>({ kind: "loading" });
-  const groups = useMemo(
-    () => (state.kind === "ready" ? groupByCompany(state.datasets) : []),
-    [state]
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -46,22 +29,24 @@ export function Dashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
-      <div className="mb-6">
+    <main className="mx-auto max-w-7xl px-6 py-10">
+      <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
-        <p className="text-sm text-muted-foreground">Live advertising performance, straight from Databricks.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Live advertising performance, straight from Databricks.
+        </p>
       </div>
 
       {state.kind === "loading" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }, (_, i) => (
-            <Skeleton key={i} className="h-28 w-full" />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-40 w-full rounded-xl" />
           ))}
         </div>
       )}
 
       {state.kind === "error" && (
-        <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+        <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
           {state.message}
         </div>
       )}
@@ -69,41 +54,49 @@ export function Dashboard() {
       {state.kind === "ready" && state.datasets.length === 0 && (
         <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
           <p className="mb-1 text-2xl" aria-hidden>📊</p>
-          No datasets are available in the workspace yet.
+          No company datasets are available yet — contact an administrator.
         </div>
       )}
 
       {state.kind === "ready" && state.datasets.length > 0 && (
-        <div className="space-y-8">
-          {groups.map(({ company, items }) => (
-            <section key={company}>
-              <div className="mb-3 flex items-center gap-2">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
-                  {company.slice(0, 2).toUpperCase()}
-                </span>
-                <h2 className="text-lg font-semibold">{company}</h2>
-                <span className="text-sm text-muted-foreground">
-                  {items.length} {items.length === 1 ? "dataset" : "datasets"}
-                </span>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((d) => (
-                  <Link key={d.name} href={`/datasets/${d.name}`} className="group">
-                    <Card className="h-full transition-colors group-hover:border-primary/50">
-                      <CardContent className="flex h-full flex-col gap-2 p-5">
-                        <span className="font-medium">{d.shortLabel}</span>
-                        <span className="truncate font-mono text-xs text-muted-foreground" title={d.fqn}>
-                          {d.fqn}
-                        </span>
-                        <span className="mt-auto text-sm text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                          Open analytics →
-                        </span>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </section>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {state.datasets.map((d) => (
+            <Link key={d.name} href={`/datasets/${d.name}`} className="group focus-visible:outline-none">
+              <Card className="h-full overflow-hidden transition-all group-hover:-translate-y-0.5 group-hover:border-primary/50 group-hover:shadow-md group-focus-visible:border-primary">
+                <CardContent className="flex h-full flex-col gap-4 p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-base font-semibold text-primary ring-1 ring-inset ring-primary/10">
+                      {d.label.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-semibold leading-tight">{d.label}</p>
+                      <p className="text-xs text-muted-foreground">Advertising performance</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm">
+                    <div>
+                      <p className="font-semibold tabular-nums">{d.rowCount.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">days of data</p>
+                    </div>
+                    {d.latestDate && (
+                      <div>
+                        <p className="font-semibold tabular-nums">{d.latestDate}</p>
+                        <p className="text-xs text-muted-foreground">latest</p>
+                      </div>
+                    )}
+                    <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
+                      Live
+                    </span>
+                  </div>
+
+                  <span className="mt-auto text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                    Open analytics →
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("unauthenticated users are redirected to login", async ({ page }) => {
-  await page.goto("/datasets/excel_hackathon_spread_sheet_overstock_table_1");
+  await page.goto("/datasets/excel_company_overstock");
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { name: "AMPulse" })).toBeVisible();
 });
