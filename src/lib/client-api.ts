@@ -33,3 +33,31 @@ export const patchTable = async (
       body: JSON.stringify(patch),
     })
   );
+
+export interface SyncResponse {
+  results: {
+    tableId: string;
+    name: string;
+    status: "synced" | "skipped" | "failed";
+    databricksTable?: string;
+    rowCount?: number;
+    reason?: string;
+  }[];
+  workbook: ParsedWorkbook;
+}
+
+export const syncWorkbook = async (workbookId: string): Promise<SyncResponse> =>
+  parseJson(await fetch(`/api/workbooks/${workbookId}/sync`, { method: "POST" }));
+
+export interface LiveTableResponse {
+  columns: import("@/lib/schemas/workbook").ParsedColumn[];
+  rows: Record<string, import("@/lib/schemas/workbook").CellValue>[];
+  databricksTable: string;
+  fetchedAt: string;
+}
+
+export const fetchLiveTable = async (
+  workbookId: string,
+  tableId: string
+): Promise<LiveTableResponse> =>
+  parseJson(await fetch(`/api/workbooks/${workbookId}/tables/${tableId}/live`));

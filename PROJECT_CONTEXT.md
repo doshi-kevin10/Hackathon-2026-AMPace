@@ -8,10 +8,20 @@
 
 ## Active Tasks
 - [x] Phase-1 MVP: upload → parse → detect tables → review/correct → export JSON (2026-07-16)
-- [ ] Phase 2 (future): Databricks mapping via `DataSourceAdapter` (interface defined, unimplemented)
+- [x] Phase 2: Databricks sync (Excel→kevin_dev) + live mirror (Databricks→UI, 30s poll) (2026-07-16)
+- [ ] Phase 2b (future): scheduled Databricks-side refresh / webhook instead of UI polling; write-back to Excel
 - [ ] Nice-to-have: allow creating a table from an ignored region; virtualized raw grid for huge sheets
 
 ## Recent Changes (Last 30 Days)
+### 2026-07-16 - Databricks sync + live mirror (phase 2 start)
+- `src/lib/databricks/client.ts`: minimal SQL Statement Execution API client (REST, env auth: DATABRICKS_HOST/TOKEN, warehouse default `060a27190dd3ecb5` dev-SQLusers serverless, override DATABRICKS_WAREHOUSE_ID)
+- `src/lib/databricks/sync.ts`: pushes eligible (canonical) tables to `dev_catalog_for_individual_use.kevin_dev.excel_<wb>_<sheet>_<table>` with fixed 9-col schema (Date, Day, Total_Adspend, Clicks, CPC, Revenue, Conversions, ROAS, CVR); only `excel_`-prefixed tables writable; dateless (TOTAL) rows filtered; `pullLiveTable` reads back for UI
+- Routes: `POST /api/workbooks/:id/sync`, `GET /api/workbooks/:id/tables/:tableId/live`; `table.databricks` mapping in schema, preserved across corrections
+- UI: "Sync to Databricks" button (summary bar); synced cards show "⚡ Live · Databricks" and poll every 30s → Databricks-side edits appear automatically
+- Synonyms added: "sot revenue"→Revenue, "ui conversions"→Conversions (kevin's real workbook headers)
+- SYNCED: 8 tables from "hackathon Spread Sheet .xlsx" (Overstock 201, BBB 1661, Groupon 2/30/31/30, AA Oct 31, AA Nov 30 rows) — verified via SELECT
+- 24/24 vitest (5 new sync SQL tests), build green, browser sweep clean
+
 ### 2026-07-16 - Canonical ad-metrics columns, Excel-style formulas & grid
 - Canonical column vocabulary (Date, Day, Total Adspend, Clicks, CPC, Revenue, Conversions, ROAS, CVR): headers matched via synonyms and renamed (original kept in `originalHeader`); Day/CPC/ROAS/CVR auto-derived when inputs exist; canonical columns ordered/shown first (others hidden by default, toggleable in Columns menu). Applies only when ≥2 canonical columns match — files: src/lib/excel/canonicalize.ts
 - Safe formula engine (no eval; + − × ÷, parens, `[Bracketed Names]`) + user "Add column" flow persisted as `computedColumns`, re-applied after range/split/merge corrections — files: src/lib/excel/formula.ts, src/lib/excel/computed-columns.ts, corrections.ts, table-card.tsx
@@ -56,5 +66,5 @@
 </details>
 
 ## Context Metadata
-- Last updated: 2026-07-16 11:55
-- Update count: 3
+- Last updated: 2026-07-16 12:45
+- Update count: 4

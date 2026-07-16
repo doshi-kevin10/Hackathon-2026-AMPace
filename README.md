@@ -160,16 +160,29 @@ All limits are env vars with defaults (`src/lib/config.ts`): `EXCEL_MAX_FILE_MB`
   view caps at 300×80 cells.
 - Storage is a local directory — single instance, no auth, uploads expire after 24 h.
 
-## Future Databricks integration
+## Databricks integration
 
-Every layer keeps a stable id (`workbook → sheet → table → column`), preserved across user
-corrections, so a later phase can persist mappings:
+**Sync (Excel → Databricks).** The "Sync to Databricks" button pushes every eligible table
+(not excluded, maps onto the canonical ad-metrics vocabulary) into Kevin's dev schema as its
+own table containing ONLY the 9 canonical columns:
 
 ```
-Excel workbook → sheet → detected table → normalized columns
-             → Databricks catalog.schema.table → column mappings
+dev_catalog_for_individual_use.kevin_dev.excel_<workbook>_<sheet>_<table>
+  (Date DATE, Day STRING, Total_Adspend DOUBLE, Clicks BIGINT, CPC DOUBLE,
+   Revenue DOUBLE, Conversions BIGINT, ROAS DOUBLE, CVR DOUBLE)
 ```
 
-`src/lib/adapters/data-source-adapter.ts` defines the `DataSourceAdapter` interface
-(`listTables`, `getSchema`, `previewRows`, `validateMapping`) plus `TableMapping` /
-`ValidationResult` types that a `DatabricksAdapter` will implement.
+Implementation: `src/lib/databricks/` — a minimal SQL Statement Execution API client (no
+SDK) plus a sync module that emits `CREATE OR REPLACE TABLE` + chunked `INSERT`s. Safety:
+only `excel_`-prefixed tables are ever written (enforced in code), the catalog must not be a
+`prod` catalog, rows without a valid Date (sheet TOTAL/summary lines) are excluded, and
+string literals are escaped. Auth uses the same `DATABRICKS_HOST` / `DATABRICKS_TOKEN` env
+vars as the databricks CLI (`DATABRICKS_WAREHOUSE_ID` optional).
+
+**Live (Databricks → UI).** Once synced, each table card mirrors its Databricks table: it
+polls `GET /api/workbooks/:id/tables/:tableId/live` every 30 s, so edits made in Databricks
+show up in the UI automatically ("⚡ Live · Databricks" badge). Mappings survive corrections
+(range/split/merge) and are stored on the table (`table.databricks`).
+
+`src/lib/adapters/data-source-adapter.ts` keeps the generic `DataSourceAdapter` interface
+for future non-Databricks backends.

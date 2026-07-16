@@ -180,6 +180,7 @@ export function extractTable(matrix: CellMatrix, region: Region, opts: ExtractOp
     rows,
     rowCount: rows.length,
     excluded: false,
+    databricks: null,
     computedColumns: [],
     warnings,
     source: { startRow: region.r0, endRow: region.r1, startColumn: region.c0, endColumn: region.c1 },

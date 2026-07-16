@@ -77,7 +77,7 @@ export function WorkbookView({ workbookId }: { workbookId: string }) {
 
   return (
     <main className="flex-1">
-      <SummaryBar workbook={workbook} />
+      <SummaryBar workbook={workbook} onUpdated={onUpdated} />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6 lg:flex-row">
         <SheetSidebar sheets={workbook.sheets} selected={sheet?.index ?? 0} onSelect={setSelectedSheet} />

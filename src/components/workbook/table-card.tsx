@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -16,7 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/tables/data-table";
 import { CorrectionDialog } from "./correction-dialog";
-import { ApiRequestError, patchTable } from "@/lib/client-api";
+import {
+  ApiRequestError,
+  fetchLiveTable,
+  patchTable,
+  type LiveTableResponse,
+} from "@/lib/client-api";
 import type { ParsedSheet, ParsedTable, ParsedWorkbook } from "@/lib/schemas/workbook";
 import { cn } from "@/lib/utils";
 
@@ -134,10 +139,31 @@ function AddColumnDialog({
   );
 }
 
+const LIVE_POLL_MS = 30_000;
+
 export function TableCard({ workbookId, sheet, table, onUpdated }: TableCardProps) {
   const [editing, setEditing] = useState(false);
   const [addingColumn, setAddingColumn] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState<LiveTableResponse | null>(null);
+
+  // Once synced, the card mirrors the Databricks table and refreshes on an
+  // interval — edits made in Databricks show up here automatically.
+  const mapped = table.databricks?.table ?? null;
+  useEffect(() => {
+    if (!mapped || table.excluded) return;
+    let cancelled = false;
+    const pull = () =>
+      fetchLiveTable(workbookId, table.id)
+        .then((d) => !cancelled && setLive(d))
+        .catch(() => !cancelled && setLive(null)); // fall back to the Excel snapshot
+    pull();
+    const timer = setInterval(pull, LIVE_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [workbookId, table.id, mapped, table.excluded]);
 
   const toggleExcluded = async () => {
     setBusy(true);
@@ -156,6 +182,17 @@ export function TableCard({ workbookId, sheet, table, onUpdated }: TableCardProp
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-semibold">{table.name}</h3>
           {table.excluded && <Badge variant="outline">excluded</Badge>}
+          {mapped && (
+            <Badge
+              variant="outline"
+              className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
+              title={`Mirrors ${live?.databricksTable ?? mapped} — refreshes every 30s${
+                live ? ` · last update ${new Date(live.fetchedAt).toLocaleTimeString()}` : ""
+              }`}
+            >
+              ⚡ Live · Databricks
+            </Badge>
+          )}
           <ConfidenceIndicator value={table.confidence} />
           <div className="ml-auto flex gap-2">
             {!table.excluded && (
@@ -174,16 +211,29 @@ export function TableCard({ workbookId, sheet, table, onUpdated }: TableCardProp
         <p className="text-xs text-muted-foreground">
           {sheet.name} · {table.range} · {table.rowCount.toLocaleString()} rows ×{" "}
           {table.columns.length} columns
+          {live && ` · showing ${live.databricksTable}`}
         </p>
       </CardHeader>
       {!table.excluded && (
         <CardContent>
-          <DataTable
-            columns={table.columns}
-            rows={table.rows}
-            totalRowCount={table.rowCount}
-            previewTruncated={table.previewTruncated}
-          />
+          {live ? (
+            // key: column ids differ between the Excel snapshot and the live
+            // Databricks view — remount so per-column state can't leak across.
+            <DataTable
+              key="live"
+              columns={live.columns}
+              rows={live.rows}
+              totalRowCount={live.rows.length}
+            />
+          ) : (
+            <DataTable
+              key="excel"
+              columns={table.columns}
+              rows={table.rows}
+              totalRowCount={table.rowCount}
+              previewTruncated={table.previewTruncated}
+            />
+          )}
         </CardContent>
       )}
 

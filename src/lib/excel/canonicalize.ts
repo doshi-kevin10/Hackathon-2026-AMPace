@@ -27,8 +27,8 @@ const SYNONYMS: Record<(typeof CANONICAL_ORDER)[number], string[]> = {
   ],
   Clicks: ["clicks", "click", "total clicks", "link clicks", "paid clicks"],
   CPC: ["cpc", "avg cpc", "average cpc", "cost per click", "avg cost per click"],
-  Revenue: ["revenue", "rev", "total revenue", "sales", "sales revenue", "publisher revenue"],
-  Conversions: ["conversions", "conversion", "conv", "convs", "total conversions", "purchases", "orders"],
+  Revenue: ["revenue", "rev", "total revenue", "sales", "sales revenue", "publisher revenue", "sot revenue"],
+  Conversions: ["conversions", "conversion", "conv", "convs", "total conversions", "purchases", "orders", "ui conversions"],
   ROAS: ["roas", "return on ad spend", "return on adspend"],
   CVR: ["cvr", "conversion rate", "conv rate", "cr"],
 };

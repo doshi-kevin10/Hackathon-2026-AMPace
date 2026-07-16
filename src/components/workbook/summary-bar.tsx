@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ApiRequestError, syncWorkbook } from "@/lib/client-api";
 import { compact, workbookStats } from "@/lib/format";
 import type { ParsedWorkbook } from "@/lib/schemas/workbook";
 
@@ -14,8 +16,40 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function SummaryBar({ workbook }: { workbook: ParsedWorkbook }) {
+interface SummaryBarProps {
+  workbook: ParsedWorkbook;
+  onUpdated: (wb: ParsedWorkbook) => void;
+}
+
+export function SummaryBar({ workbook, onUpdated }: SummaryBarProps) {
   const stats = workbookStats(workbook);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
+
+  const syncedCount = workbook.sheets
+    .flatMap((s) => s.tables)
+    .filter((t) => t.databricks).length;
+
+  const sync = async () => {
+    setSyncing(true);
+    setSyncNote(null);
+    try {
+      const res = await syncWorkbook(workbook.id);
+      onUpdated(res.workbook);
+      const ok = res.results.filter((r) => r.status === "synced").length;
+      const failed = res.results.filter((r) => r.status === "failed");
+      setSyncNote(
+        failed.length
+          ? `${ok} synced, ${failed.length} failed (${failed[0].reason?.slice(0, 80)})`
+          : `${ok} table${ok === 1 ? "" : "s"} synced to kevin_dev`
+      );
+    } catch (e) {
+      setSyncNote(e instanceof ApiRequestError ? e.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="border-b bg-card">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-8 gap-y-4 px-6 py-5">
@@ -26,7 +60,9 @@ export function SummaryBar({ workbook }: { workbook: ParsedWorkbook }) {
           <p className="text-xs text-muted-foreground">
             Uploaded {new Date(workbook.uploadedAt).toLocaleString()} · parsed in{" "}
             {workbook.parseTimeMs.toLocaleString()} ms
+            {syncedCount > 0 && ` · ${syncedCount} table${syncedCount === 1 ? "" : "s"} live on Databricks`}
           </p>
+          {syncNote && <p className="text-xs text-muted-foreground">{syncNote}</p>}
         </div>
 
         <div className="flex flex-wrap gap-x-8 gap-y-3">
@@ -37,6 +73,9 @@ export function SummaryBar({ workbook }: { workbook: ParsedWorkbook }) {
         </div>
 
         <div className="flex gap-2">
+          <Button size="sm" onClick={() => void sync()} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync to Databricks"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
