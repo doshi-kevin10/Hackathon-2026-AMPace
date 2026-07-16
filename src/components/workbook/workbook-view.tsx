@@ -3,14 +3,62 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiRequestError, fetchWorkbook } from "@/lib/client-api";
-import type { ParsedWorkbook } from "@/lib/schemas/workbook";
+import type { ParsedSheet, ParsedWorkbook } from "@/lib/schemas/workbook";
+import { CompanyMonitor } from "./company-monitor";
 import { RawSheetView } from "./raw-sheet-view";
 import { SheetSidebar } from "./sheet-sidebar";
 import { SummaryBar } from "./summary-bar";
+import { hasChartableData, TableAnalytics } from "./table-analytics";
 import { TableCard } from "./table-card";
+
+/** The workbook-level Analytics tab: one chart + monitoring panel per chartable, non-excluded table. */
+function SheetAnalytics({
+  sheet,
+  workbookId,
+  onUpdated,
+}: {
+  sheet: ParsedSheet;
+  workbookId: string;
+  onUpdated: (wb: ParsedWorkbook) => void;
+}) {
+  const chartable = sheet.tables.filter((t) => !t.excluded && hasChartableData(t));
+
+  if (chartable.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+        <p className="mb-1 text-2xl" aria-hidden>
+          📊
+        </p>
+        No numeric data to chart on this sheet yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {chartable.map((table) => (
+        <Card key={table.id}>
+          <CardHeader className="gap-1">
+            <h3 className="text-base font-semibold">{table.name}</h3>
+            <p className="text-xs text-muted-foreground">
+              {sheet.name} · {table.range} · {table.rowCount.toLocaleString()} rows
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-6">
+            <TableAnalytics table={table} />
+            <Separator />
+            <CompanyMonitor workbookId={workbookId} table={table} onUpdated={onUpdated} />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 function LoadingState() {
   return (
@@ -86,7 +134,7 @@ export function WorkbookView({ workbookId }: { workbookId: string }) {
           {!sheet ? (
             <p className="text-muted-foreground">This workbook has no sheets.</p>
           ) : (
-            <Tabs defaultValue="tables" key={sheet.index}>
+            <Tabs defaultValue="analytics" key={sheet.index}>
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold">{sheet.name}</h2>
                 <span className="text-sm text-muted-foreground">
@@ -95,10 +143,15 @@ export function WorkbookView({ workbookId }: { workbookId: string }) {
                   {sheet.hiddenColumns.length > 0 && ` · ${sheet.hiddenColumns.length} hidden columns`}
                 </span>
                 <TabsList className="ml-auto">
-                  <TabsTrigger value="tables">Detected tables</TabsTrigger>
+                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                  <TabsTrigger value="tables">Excel file &amp; data</TabsTrigger>
                   <TabsTrigger value="raw">Raw sheet</TabsTrigger>
                 </TabsList>
               </div>
+
+              <TabsContent value="analytics">
+                <SheetAnalytics sheet={sheet} workbookId={workbook.id} onUpdated={onUpdated} />
+              </TabsContent>
 
               <TabsContent value="tables" className="space-y-6">
                 {sheet.tables.length === 0 ? (

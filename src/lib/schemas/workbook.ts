@@ -74,6 +74,14 @@ export const ParsedTableSchema = z.object({
   excluded: z.boolean(),
   /** User-added formula columns, re-applied whenever the table is re-extracted. */
   computedColumns: z.array(z.object({ name: z.string(), formula: z.string() })).default([]),
+  /**
+   * The tracked company/advertiser this table's data belongs to, if the user
+   * has assigned one. Local stand-in for the primary key a future
+   * Databricks-backed data lake integration will provide (see
+   * src/lib/adapters/data-source-adapter.ts) — same field name, so wiring up
+   * that integration later doesn't require a data-model change.
+   */
+  company: z.string().nullable().default(null),
   warnings: z.array(ParserWarningSchema),
   source: TableSourceSchema,
 });
@@ -130,6 +138,8 @@ export const TablePatchSchema = z
   .object({
     name: z.string().trim().min(1).optional(),
     excluded: z.boolean().optional(),
+    /** Assign (or clear, with null) the tracked company/advertiser for this table. */
+    company: z.string().trim().min(1).max(120).nullable().optional(),
     /** New Excel range for the table (triggers re-extraction). */
     range: z.string().regex(A1_RANGE, "Expected an A1 range like B3:F20").optional(),
     /** Number of header rows at the top of the range: 0, 1 or 2 (triggers re-extraction). */
@@ -150,6 +160,8 @@ export const TablePatchSchema = z
         formula: z.string().trim().min(1).max(200),
       })
       .optional(),
+    /** Column ids to remove from the table (and every row). */
+    deleteColumns: z.array(z.string()).min(1).optional(),
     /** Split: absolute 1-based sheet row where the second table starts. */
     splitAtRow: z.number().int().min(1).optional(),
     /** Merge this table with another detected table on the same sheet. */

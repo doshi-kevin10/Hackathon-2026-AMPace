@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/tables/data-table";
 import { CorrectionDialog } from "./correction-dialog";
+import { FormulaInput } from "./formula-input";
 import { ApiRequestError, patchTable } from "@/lib/client-api";
 import type { ParsedSheet, ParsedTable, ParsedWorkbook } from "@/lib/schemas/workbook";
 import { cn } from "@/lib/utils";
@@ -102,17 +103,15 @@ function AddColumnDialog({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="nc-formula">Formula</Label>
-            <Input
+            <FormulaInput
               id="nc-formula"
               value={formula}
-              onChange={(e) => setFormula(e.target.value)}
+              onChange={setFormula}
+              columns={table.columns}
               placeholder="= [Revenue] - [Total Adspend]"
-              className="font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Use +, −, ×, ÷ and parentheses. Reference columns in brackets:{" "}
-              {table.columns.slice(0, 4).map((c) => `[${c.name}]`).join(" ")}
-              {table.columns.length > 4 && " …"}
+              Click a column or operator to insert it, or type the formula directly.
             </p>
           </div>
         </div>

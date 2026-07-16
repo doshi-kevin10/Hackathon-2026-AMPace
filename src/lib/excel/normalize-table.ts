@@ -17,6 +17,8 @@ export interface ExtractOptions {
   index: number;
   /** User override for header rows at the top of the region (0/1/2). Skips detection. */
   headerRowCount?: number;
+  /** Preserve a previously-assigned tracked company across re-extraction. */
+  company?: string | null;
 }
 
 const headerTextAt = (m: CellMatrix, r: number, c: number): string | null => {
@@ -181,6 +183,7 @@ export function extractTable(matrix: CellMatrix, region: Region, opts: ExtractOp
     rowCount: rows.length,
     excluded: false,
     computedColumns: [],
+    company: opts.company ?? null,
     warnings,
     source: { startRow: region.r0, endRow: region.r1, startColumn: region.c0, endColumn: region.c1 },
   };

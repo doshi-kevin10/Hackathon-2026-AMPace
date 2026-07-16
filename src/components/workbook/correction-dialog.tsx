@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ApiRequestError, patchTable } from "@/lib/client-api";
+import { cn } from "@/lib/utils";
 import {
   COLUMN_TYPES,
   type ColumnType,
@@ -56,6 +58,7 @@ export function CorrectionDialog({
   const [colTypes, setColTypes] = useState<Record<string, ColumnType>>(() =>
     Object.fromEntries(table.columns.map((c) => [c.id, c.typeOverride ?? c.inferredType]))
   );
+  const [deleteIds, setDeleteIds] = useState<Set<string>>(new Set());
   const [splitAt, setSplitAt] = useState("");
   const [mergeWith, setMergeWith] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,6 +83,15 @@ export function CorrectionDialog({
     }
   };
 
+  const toggleDelete = (id: string) => {
+    setDeleteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < table.columns.length - 1) next.add(id);
+      return next;
+    });
+  };
+
   const applyEdits = () => {
     const patch: TablePatch = {};
     if (name.trim() && name !== table.name) patch.name = name.trim();
@@ -88,6 +100,7 @@ export function CorrectionDialog({
       patch.headerRowCount = Number(headerRowCount);
     }
     const columns = table.columns.flatMap((c) => {
+      if (deleteIds.has(c.id)) return [];
       const edits: { id: string; name?: string; typeOverride?: ColumnType | null } = { id: c.id };
       let changed = false;
       if (colNames[c.id]?.trim() && colNames[c.id] !== c.name) {
@@ -102,6 +115,7 @@ export function CorrectionDialog({
       return changed ? [edits] : [];
     });
     if (columns.length > 0) patch.columns = columns;
+    if (deleteIds.size > 0) patch.deleteColumns = [...deleteIds];
     if (Object.keys(patch).length === 0) {
       onOpenChange(false);
       return;
@@ -142,7 +156,11 @@ export function CorrectionDialog({
                 onValueChange={(v) => setHeaderRowCount(v ?? headerRowCount)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {(v: string) =>
+                      ({ "0": "No header", "1": "First row", "2": "First two rows" })[v] ?? v
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">No header</SelectItem>
@@ -156,33 +174,53 @@ export function CorrectionDialog({
           <div className="grid gap-2">
             <Label>Columns</Label>
             <div className="grid max-h-56 gap-2 overflow-y-auto pr-1">
-              {table.columns.map((c) => (
-                <div key={c.id} className="flex items-center gap-2">
-                  <Input
-                    value={colNames[c.id] ?? ""}
-                    onChange={(e) => setColNames({ ...colNames, [c.id]: e.target.value })}
-                    className="h-8"
-                    aria-label={`Rename column ${c.name}`}
-                  />
-                  <Select
-                    value={colTypes[c.id]}
-                    onValueChange={(v) => setColTypes({ ...colTypes, [c.id]: v as ColumnType })}
-                  >
-                    <SelectTrigger className="h-8 w-32 shrink-0" aria-label={`Type of column ${c.name}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COLUMN_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                          {t === c.inferredType ? " (detected)" : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {table.columns.map((c) => {
+                const marked = deleteIds.has(c.id);
+                return (
+                  <div key={c.id} className={cn("flex items-center gap-2", marked && "opacity-50")}>
+                    <Input
+                      value={colNames[c.id] ?? ""}
+                      onChange={(e) => setColNames({ ...colNames, [c.id]: e.target.value })}
+                      className={cn("h-8", marked && "line-through")}
+                      disabled={marked}
+                      aria-label={`Rename column ${c.name}`}
+                    />
+                    <Select
+                      value={colTypes[c.id]}
+                      onValueChange={(v) => setColTypes({ ...colTypes, [c.id]: v as ColumnType })}
+                      disabled={marked}
+                    >
+                      <SelectTrigger className="h-8 w-32 shrink-0" aria-label={`Type of column ${c.name}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COLUMN_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                            {t === c.inferredType ? " (detected)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant={marked ? "outline" : "ghost"}
+                      size="icon-sm"
+                      className="shrink-0"
+                      disabled={!marked && table.columns.length - deleteIds.size <= 1}
+                      title={marked ? `Keep "${c.name}"` : `Delete "${c.name}"`}
+                      aria-label={marked ? `Keep column ${c.name}` : `Delete column ${c.name}`}
+                      onClick={() => toggleDelete(c.id)}
+                    >
+                      {marked ? <RotateCcw /> : <Trash2 className="text-destructive" />}
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
+            {table.columns.length - deleteIds.size <= 1 && (
+              <p className="text-xs text-muted-foreground">A table must keep at least one column.</p>
+            )}
           </div>
 
           <Separator />

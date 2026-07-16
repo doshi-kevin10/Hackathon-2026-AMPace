@@ -42,6 +42,7 @@ const applySimpleFields = (table: ParsedTable, patch: TablePatch): ParsedTable =
   const next = { ...table };
   if (patch.name !== undefined) next.name = patch.name;
   if (patch.excluded !== undefined) next.excluded = patch.excluded;
+  if (patch.company !== undefined) next.company = patch.company;
   if (patch.addColumn) {
     try {
       applyComputedColumn(next, patch.addColumn);
@@ -63,6 +64,23 @@ const applySimpleFields = (table: ParsedTable, patch: TablePatch): ParsedTable =
         typeOverride: edit.typeOverride !== undefined ? edit.typeOverride : col.typeOverride,
       };
     });
+  }
+  if (patch.deleteColumns && patch.deleteColumns.length > 0) {
+    const toDelete = new Set(patch.deleteColumns);
+    const remaining = next.columns.filter((c) => !toDelete.has(c.id));
+    if (remaining.length === 0) {
+      throw new CorrectionError("INVALID_PATCH", "A table must keep at least one column");
+    }
+    const deletedNames = new Set(next.columns.filter((c) => toDelete.has(c.id)).map((c) => c.name));
+    next.columns = remaining;
+    next.rows = next.rows.map((row) => {
+      const copy = { ...row };
+      for (const id of toDelete) delete copy[id];
+      return copy;
+    });
+    // Drop any persisted computed-column spec for a deleted formula column so
+    // it doesn't reappear the next time the table is re-extracted.
+    next.computedColumns = next.computedColumns.filter((cc) => !deletedNames.has(cc.name));
   }
   return next;
 };
@@ -118,7 +136,11 @@ export function applyTablePatch(
           `Split row must be inside the table (rows ${region.r0 + 2}–${region.r1 + 1})`
         );
       }
-      const top = extractTable(matrix, { ...region, r1: splitRow - 1 }, { id: table.id, name: table.name, index: tableIndex });
+      const top = extractTable(
+        matrix,
+        { ...region, r1: splitRow - 1 },
+        { id: table.id, name: table.name, index: tableIndex, company: table.company }
+      );
       const bottom = extractTable(matrix, { ...region, r0: splitRow }, { index: tableIndex + 1 });
       reapplyComputedColumns(top, table.computedColumns);
       newTables = [applySimpleFields(top, patch), bottom];
@@ -138,6 +160,7 @@ export function applyTablePatch(
         name: table.name,
         index: tableIndex,
         headerRowCount: patch.headerRowCount,
+        company: table.company,
       });
       reapplyComputedColumns(merged, table.computedColumns);
       sheet.tables = sheet.tables.filter((t) => t.id !== other.id);
@@ -155,6 +178,7 @@ export function applyTablePatch(
         title: table.title,
         index: tableIndex,
         headerRowCount: patch.headerRowCount,
+        company: table.company,
       });
       reapplyComputedColumns(reExtracted, table.computedColumns);
       newTables = [applySimpleFields(reExtracted, patch)];
