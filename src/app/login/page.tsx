@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/server";
+import { safeNext } from "@/lib/safe-redirect";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage({
@@ -8,7 +9,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  if (await getSessionUser()) redirect(next && next.startsWith("/") ? next : "/");
+  if (await getSessionUser()) redirect(safeNext(next));
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted/30 px-6">

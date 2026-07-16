@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { SignJWT } from "jose";
 import { createSessionToken, verifySessionToken } from "./session";
 import { verifyCredentials } from "./credentials";
+
+// Tests run with no AUTH_SECRET, so session.ts uses this dev fallback.
+const DEV_SECRET = new TextEncoder().encode("ampulse-dev-insecure-secret-change-me");
 
 describe("dev credentials", () => {
   it("accepts a seeded user with the correct password", () => {
@@ -30,5 +34,15 @@ describe("session tokens", () => {
     expect(await verifySessionToken(token.slice(0, -3) + "xxx")).toBeNull();
     expect(await verifySessionToken(undefined)).toBeNull();
     expect(await verifySessionToken("not.a.jwt")).toBeNull();
+  });
+
+  it("rejects a validly-signed token carrying an invalid role", async () => {
+    // Forge a properly-signed JWT with a bogus role — must still be rejected.
+    const forged = await new SignJWT({ role: "ROOT" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setSubject("attacker@b.dev")
+      .setExpirationTime("1h")
+      .sign(DEV_SECRET);
+    expect(await verifySessionToken(forged)).toBeNull();
   });
 });

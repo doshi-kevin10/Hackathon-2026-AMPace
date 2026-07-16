@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { safeNext } from "@/lib/safe-redirect";
 
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export function LoginForm({ next }: { next?: string }) {
         setError(body?.error?.message ?? "Sign in failed");
         return;
       }
-      router.push(next && next.startsWith("/") ? next : "/");
+      router.push(safeNext(next));
       router.refresh();
     } catch {
       setError("Network error");
