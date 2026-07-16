@@ -87,6 +87,10 @@ export function DatasetView({ name }: { name: string }) {
     return max;
   }, [data, dateColId]);
 
+  // Only offer the date-range filter when the dataset actually has dated rows
+  // (some tables have no Date column populated — a date filter there is a no-op).
+  const hasDates = latestDate != null;
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-6">
       <div className="mb-4">
@@ -112,18 +116,22 @@ export function DatasetView({ name }: { name: string }) {
               <p className="font-mono text-xs text-muted-foreground">{data.databricksTable}</p>
             </div>
 
-            <div className="grid gap-1">
-              <Label htmlFor="from" className="text-xs">From date</Label>
-              <Input id="from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-8 w-40" />
-            </div>
-            <div className="grid gap-1">
-              <Label htmlFor="to" className="text-xs">To date</Label>
-              <Input id="to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-8 w-40" />
-            </div>
-            {(from || to) && (
-              <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>
-                Clear
-              </Button>
+            {hasDates && (
+              <>
+                <div className="grid gap-1">
+                  <Label htmlFor="from" className="text-xs">From date</Label>
+                  <Input id="from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-8 w-40" />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="to" className="text-xs">To date</Label>
+                  <Input id="to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-8 w-40" />
+                </div>
+                {(from || to) && (
+                  <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>
+                    Clear dates
+                  </Button>
+                )}
+              </>
             )}
           </div>
 
