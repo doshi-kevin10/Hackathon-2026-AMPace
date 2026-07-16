@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { CalcColumns } from "@/components/analytics/calc-columns";
 import { CompanyMonitor } from "@/components/analytics/company-monitor";
 import { hasChartableData, TableAnalytics } from "@/components/analytics/table-analytics";
 import { KpiSummary } from "@/components/kpi-summary";
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { applyCalcColumns, type CalcColumnSpec } from "@/lib/formula/calc-columns";
 import type { CellValue, ParsedColumn } from "@/lib/schemas/workbook";
 
 const POLL_MS = 30_000;
@@ -24,12 +26,41 @@ interface LiveData {
   label: string;
 }
 
+// Calc columns are session-scoped per dataset (not written to Databricks).
+const calcKey = (name: string) => `ampulse-calc-${name}`;
+const readCalc = (name: string): CalcColumnSpec[] => {
+  if (typeof window === "undefined") return []; // SSR-safe
+  try {
+    return JSON.parse(sessionStorage.getItem(calcKey(name)) ?? "[]") as CalcColumnSpec[];
+  } catch {
+    return [];
+  }
+};
+
 export function DatasetView({ name }: { name: string }) {
   const [data, setData] = useState<LiveData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [calcSpecs, setCalcSpecs] = useState<CalcColumnSpec[]>([]);
+  // Load calc columns for the current dataset without an effect: re-read from
+  // sessionStorage during render when the dataset changes (first client render
+  // is [] to match SSR, then this syncs in the stored specs — no hydration gap).
+  const [syncedName, setSyncedName] = useState<string | null>(null);
+  if (syncedName !== name) {
+    setSyncedName(name);
+    setCalcSpecs(readCalc(name));
+  }
+
+  const persistCalc = (next: CalcColumnSpec[]) => {
+    setCalcSpecs(next);
+    try {
+      sessionStorage.setItem(calcKey(name), JSON.stringify(next));
+    } catch {
+      // sessionStorage unavailable — keep in memory for the session
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -63,16 +94,21 @@ export function DatasetView({ name }: { name: string }) {
     };
   }, [name]);
 
-  const dateColId = useMemo(
-    () => data?.columns.find((c) => c.name === "Date")?.id ?? null,
-    [data]
+  // Base rows + user calc columns. Recomputes on data refresh and on calc edits.
+  const augmented = useMemo(
+    () => (data ? applyCalcColumns({ columns: data.columns, rows: data.rows }, calcSpecs) : { columns: [], rows: [] }),
+    [data, calcSpecs]
   );
 
-  // Client-side date-range filter (instant — no server round trip). Feeds the grid, KPIs, and charts.
+  const dateColId = useMemo(
+    () => augmented.columns.find((c) => c.name === "Date")?.id ?? null,
+    [augmented.columns]
+  );
+
+  // Client-side date-range filter (instant). Feeds the grid, KPIs, and charts.
   const filteredRows = useMemo(() => {
-    if (!data) return [];
-    if (!dateColId || (!from && !to)) return data.rows;
-    return data.rows.filter((row) => {
+    if (!dateColId || (!from && !to)) return augmented.rows;
+    return augmented.rows.filter((row) => {
       const iso = row[dateColId]?.normalized;
       if (typeof iso !== "string") return false;
       const d = iso.slice(0, 10);
@@ -80,20 +116,18 @@ export function DatasetView({ name }: { name: string }) {
       if (to && d > to) return false;
       return true;
     });
-  }, [data, dateColId, from, to]);
+  }, [augmented.rows, dateColId, from, to]);
 
   const latestDate = useMemo(() => {
-    if (!data || !dateColId) return null;
+    if (!dateColId) return null;
     let max: string | null = null;
-    for (const row of data.rows) {
+    for (const row of augmented.rows) {
       const iso = row[dateColId]?.normalized;
       if (typeof iso === "string" && (!max || iso > max)) max = iso.slice(0, 10);
     }
     return max;
-  }, [data, dateColId]);
+  }, [augmented.rows, dateColId]);
 
-  // Only offer the date-range filter when the dataset actually has dated rows
-  // (some tables have no Date column populated — a date filter there is a no-op).
   const hasDates = latestDate != null;
 
   return (
@@ -149,11 +183,19 @@ export function DatasetView({ name }: { name: string }) {
             {latestDate && <span>Latest data: {latestDate}</span>}
             <span>
               {filteredRows.length.toLocaleString()}
-              {filteredRows.length !== data.rows.length && ` of ${data.rows.length.toLocaleString()}`} rows
+              {filteredRows.length !== augmented.rows.length && ` of ${augmented.rows.length.toLocaleString()}`} rows
             </span>
           </div>
 
-          <KpiSummary columns={data.columns} rows={filteredRows} />
+          <KpiSummary columns={augmented.columns} rows={filteredRows} />
+
+          <CalcColumns
+            columns={augmented.columns}
+            sampleRow={filteredRows[0] ?? augmented.rows[0]}
+            specs={calcSpecs}
+            onAdd={(spec) => persistCalc([...calcSpecs, spec])}
+            onRemove={(id) => persistCalc(calcSpecs.filter((s) => s.id !== id))}
+          />
 
           <Tabs defaultValue="analytics">
             <TabsList className="mb-4">
@@ -162,8 +204,8 @@ export function DatasetView({ name }: { name: string }) {
             </TabsList>
 
             <TabsContent value="analytics" className="grid gap-6">
-              {hasChartableData({ columns: data.columns, rows: filteredRows }) ? (
-                <TableAnalytics table={{ columns: data.columns, rows: filteredRows }} />
+              {hasChartableData({ columns: augmented.columns, rows: filteredRows }) ? (
+                <TableAnalytics table={{ columns: augmented.columns, rows: filteredRows }} />
               ) : (
                 <p className="text-sm text-muted-foreground">No numeric data to chart yet.</p>
               )}
@@ -171,7 +213,7 @@ export function DatasetView({ name }: { name: string }) {
             </TabsContent>
 
             <TabsContent value="data">
-              <DataTable columns={data.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
+              <DataTable columns={augmented.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
             </TabsContent>
           </Tabs>
         </>

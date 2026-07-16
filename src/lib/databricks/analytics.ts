@@ -24,6 +24,10 @@ export interface Dataset {
   rowCount: number;
   /** Most recent Date in the table (ISO), or null. */
   latestDate: string | null;
+  /** Average ROAS across the dataset (card summary), or null. */
+  avgRoas: number | null;
+  /** Total ad spend across the dataset (card summary), or null. */
+  totalAdspend: number | null;
 }
 
 // Short all-letter tokens are acronyms (aa→AA, bbb→BBB); others title-case.
@@ -49,23 +53,40 @@ export async function listDatasets(): Promise<Dataset[]> {
 
   // One round trip for all per-company stats (names are allowlisted, safe to interpolate).
   const union = names
-    .map((n) => `SELECT '${n}' AS t, COUNT(*) AS c, CAST(MAX(Date) AS STRING) AS d FROM \`${CATALOG}\`.\`${SCHEMA}\`.\`${n}\``)
+    .map(
+      (n) =>
+        `SELECT '${n}' AS t, COUNT(*) AS c, CAST(MAX(Date) AS STRING) AS d, ` +
+        `ROUND(AVG(ROAS),2) AS r, ROUND(SUM(Total_Adspend)) AS s ` +
+        `FROM \`${CATALOG}\`.\`${SCHEMA}\`.\`${n}\``
+    )
     .join(" UNION ALL ");
-  const stats = new Map<string, { c: number; d: string | null }>();
+  const stats = new Map<string, { c: number; d: string | null; r: number | null; s: number | null }>();
   try {
     const res = await executeStatement(union);
-    for (const [t, c, d] of res.rows) stats.set(String(t), { c: Number(c), d: d ? String(d) : null });
+    for (const [t, c, d, r, s] of res.rows) {
+      stats.set(String(t), {
+        c: Number(c),
+        d: d ? String(d) : null,
+        r: r != null ? Number(r) : null,
+        s: s != null ? Number(s) : null,
+      });
+    }
   } catch {
-    // Stats are decorative; fall back to zero if the summary query fails.
+    // Stats are decorative; fall back to nulls if the summary query fails.
   }
 
-  return names.map((name) => ({
-    name,
-    label: prettify(name),
-    fqn: `${CATALOG}.${SCHEMA}.${name}`,
-    rowCount: stats.get(name)?.c ?? 0,
-    latestDate: stats.get(name)?.d ?? null,
-  }));
+  return names.map((name) => {
+    const st = stats.get(name);
+    return {
+      name,
+      label: prettify(name),
+      fqn: `${CATALOG}.${SCHEMA}.${name}`,
+      rowCount: st?.c ?? 0,
+      latestDate: st?.d ?? null,
+      avgRoas: st?.r ?? null,
+      totalAdspend: st?.s ?? null,
+    };
+  });
 }
 
 /** Current canonical-metric rows for one dataset (live from Databricks). */

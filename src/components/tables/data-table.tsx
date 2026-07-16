@@ -43,13 +43,14 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showFilters, setShowFilters] = useState(true);
 
-  // Ad-performance tables show the canonical metric columns by default;
-  // everything else stays available in the Columns menu.
+  // Ad-performance tables show the canonical metric columns by default; extra
+  // source columns stay in the Columns menu. User calc columns (formula set)
+  // are always shown — the user just created them.
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
     if (!isCanonicalTable({ columns })) return {};
     const canonical = new Set<string>(CANONICAL_ORDER);
     return Object.fromEntries(
-      columns.filter((c) => !canonical.has(c.name)).map((c) => [c.id, false])
+      columns.filter((c) => !canonical.has(c.name) && c.formula == null).map((c) => [c.id, false])
     );
   });
 
