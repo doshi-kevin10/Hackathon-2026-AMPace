@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/tables/data-table";
+import { KpiSummary } from "@/components/kpi-summary";
 import type { CellValue, ParsedColumn } from "@/lib/schemas/workbook";
 
 const POLL_MS = 30_000;
@@ -147,6 +148,8 @@ export function DatasetView({ name }: { name: string }) {
               {filteredRows.length !== data.rows.length && ` of ${data.rows.length.toLocaleString()}`} rows
             </span>
           </div>
+
+          <KpiSummary columns={data.columns} rows={filteredRows} />
 
           <DataTable columns={data.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
         </>
