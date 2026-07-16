@@ -36,6 +36,7 @@
 ## Key File Locations
 | Purpose | Path |
 |---------|------|
+| GitHub repo | https://github.com/doshi-kevin10/Hackathon-2026-AMPace (branch: main) |
 | App root | /Users/kdoshi/Desktop/AMPulse/excel-parser |
 | Parser pipeline | src/lib/excel/ |
 | Shared Zod schemas/types | src/lib/schemas/workbook.ts |
