@@ -1,22 +1,30 @@
-# Excel Table Studio
+# AMPulse — Live Advertising Analytics
 
-Upload complex Excel workbooks, automatically detect every table on every sheet, review and
-correct the detection in a polished UI, and export the normalized result as JSON.
+A login-gated analytics workspace where **Databricks is the source of truth**. Users sign in,
+browse the advertising datasets in the workspace, and analyze live daily metrics — sort, search,
+date-filter — in a spreadsheet-style grid that auto-refreshes as the Databricks data changes.
 
-This is **phase 1** of a larger AI-automation project. Databricks, Slack, and AI analytics
-integrations come later — the data model already carries the stable ids they will need
-(see [Future Databricks integration](#future-databricks-integration)).
+> This is the pivoted product. It grew out of an Excel-parser prototype; that ingestion path has
+> been removed from the app (Excel is no longer an input). See `REFACTOR_PLAN.md` for the full
+> intended platform and which parts of it this build intentionally defers.
 
 ## Quick start
 
 ```bash
 npm install
-npm run fixtures     # generate the sample .xlsx workbooks into fixtures/
-npm run dev          # http://localhost:3000
+
+# Databricks (same vars the databricks CLI uses)
+export DATABRICKS_HOST="https://<workspace>.cloud.databricks.com"
+export DATABRICKS_TOKEN="<pat>"
+# optional: DATABRICKS_WAREHOUSE_ID, DATABRICKS_CATALOG, DATABRICKS_SCHEMA
+# recommended in any shared/prod use:
+export AUTH_SECRET="$(openssl rand -hex 32)"
+
+npm run dev            # http://localhost:3000  → redirects to /login
 ```
 
-On the upload page you can drag-and-drop an `.xlsx`/`.xls` file, or use the
-**Try a sample workbook** buttons (dev-only) to load one of the bundled fixtures.
+**Demo logins** (dev-only, password `ampulse`): `superadmin@ampulse.dev`, `analyst@ampulse.dev`,
+`viewer@ampulse.dev`.
 
 ## Commands
 
@@ -24,152 +32,100 @@ On the upload page you can drag-and-drop an `.xlsx`/`.xls` file, or use the
 |---|---|
 | `npm run dev` | Dev server |
 | `npm run build && npm start` | Production build + serve |
-| `npm test` | Vitest unit tests (parser pipeline, 12 scenarios) |
-| `npm run test:e2e` | Playwright upload → workbook view test (starts its own server) |
-| `npm run fixtures` | Regenerate sample workbooks in `fixtures/` |
+| `npm test` | Vitest unit tests |
+| `E2E_PORT=3000 npm run test:e2e` | Playwright (point at a running server; Next allows one dev instance per project) |
 | `npm run lint` | ESLint |
 
 ## Architecture
 
 ```
-Browser ── upload (.xlsx/.xls) ──▶ POST /api/workbooks/upload
-                                        │  validate ext/MIME/size/signature
-                                        ▼
-                              src/lib/excel/  (server-only pipeline)
-                    parse-workbook → cell-matrix (+merged-cells)
-                          → detect-tables → detect-headers
-                          → infer-types → normalize-table
-                                        │
-                                        ▼
-                       .data/workbooks/<id>/{original.xlsx, workbook.json}
-                                        │
-        GET /api/workbooks/:id  ◀───────┤ (preview: first 1000 rows/table)
-        PATCH …/tables/:tableId ◀───────┤ (corrections re-extract from original)
-        GET …/export/json       ◀───────┤ (full data)
-        GET …/sheets/:i/grid    ◀───────┘ (raw grid for the sheet view)
+Browser (signed-cookie session)
+  │  fetch /api/datasets, /api/datasets/[name]   (never SQL)
+  ▼
+Next.js App Router
+  ├── middleware.ts        auth gate — unauth pages → /login, unauth APIs → 401
+  ├── lib/auth/*           dev credentials + jose-signed session (JWT cookie)
+  └── lib/databricks/*     read-only analytics over the approved schema
+                             executeStatement → Databricks SQL Statement Execution API
 ```
 
-Separation of concerns:
+**Data ownership.** Databricks holds the analytics data. The app holds only trivial metadata (dev
+users in config) — **no PostgreSQL in this build** (the full spec's Postgres/Prisma layer is
+deferred; see `REFACTOR_PLAN.md`).
 
-- `src/lib/excel/` — pure parsing pipeline, no I/O, unit-tested. Never evaluates formulas
-  (reads formula text + cached values only); macros are never executed.
-- `src/lib/schemas/workbook.ts` — Zod schemas are the single source of truth; all API
-  responses are validated against them and the TS types are inferred from them.
-- `src/lib/storage/` — local filesystem persistence (`.data/`), 24 h retention sweep.
-  No database in this phase.
-- `src/app/api/` — thin route handlers: validation, error mapping, response shaping.
-- `src/components/` — upload flow, workbook explorer (TanStack Table), correction dialog,
-  raw sheet grid.
-- `src/lib/adapters/data-source-adapter.ts` — the future integration interface (unimplemented).
+## Authentication
 
-## Parser pipeline
+- `middleware.ts` gates every route: unauthenticated page requests redirect to `/login`, API
+  requests get `401`. Data API handlers **also** re-check the session server-side (defense in
+  depth — authorization never depends on hidden UI).
+- Sessions are `jose`-signed JWTs in an `httpOnly`, `sameSite=lax`, `secure`-in-prod cookie
+  (8h). The edge middleware only *verifies* JWTs (no `node:crypto`); password checks
+  (`node:crypto` scrypt, constant-time) live in a node-only module (`lib/auth/credentials.ts`).
+- **Dev credentials only.** Demo users live in `src/lib/auth/config.ts` as plaintext demo
+  passwords. This is a development login and **must not be used in production** — swap for
+  Auth.js/Clerk + a real user store. Set `AUTH_SECRET` outside local dev.
 
-1. **Read workbook** (`parse-workbook.ts`) — SheetJS with `cellNF/cellText/cellStyles`;
-   magic-byte check (ZIP/CFB) rejects non-Excel bytes; classifies password-protected,
-   corrupt, and empty workbooks into typed errors.
-2. **Cell matrix** (`cell-matrix.ts`) — dense matrix of `{value, display, formula, type,
-   number format}` per cell; hidden rows/cols recorded; capped by configurable row/cell
-   limits. Merged ranges are expanded so covered cells mirror their anchor
-   (`merged-cells.ts`).
-3. **Region detection** (`detect-tables.ts`) — recursively decompose the used range by
-   fully-blank row and column separators (a single blank *cell* never splits a table;
-   merges keep regions connected). Tiny fragments just above a table become its title;
-   stray fragments are reported as ignored notes.
-4. **Header detection** (`detect-headers.ts`) — peels up to 2 title rows (sparse rows or a
-   single wide merge), then scores rows on fill ratio / string ratio / uniqueness vs the
-   body. Supports single-row headers, two-row headers ("Q1 - Rev" from merged group cells),
-   and headerless tables (`Column_1…`). Duplicate/empty names normalized
-   (`Revenue, Revenue_2, Column_3`), original text preserved.
-5. **Type inference** (`infer-types.ts`) — per-cell classification from SheetJS type +
-   number format: string / integer / decimal / currency / percentage / boolean / date /
-   datetime; column type by 90 % dominance with numeric/date family merging; mostly-formula
-   columns report as `formula`; disagreement → `mixed`. Values are never coerced — each
-   cell keeps `raw`, `normalized` (ISO dates etc.), and `display`.
-6. **Normalization** (`normalize-table.ts`) — emits `ParsedTable` with columns, rows keyed
-   by stable column ids, confidence score (density + header confidence + row regularity +
-   size), and warnings (`HEADER_NOT_DETECTED`, `IRREGULAR_ROWS`, `MERGED_CELLS`,
-   `MOSTLY_EMPTY`, `DUPLICATE_HEADERS`, `FORMULA_HEAVY`, …). Warnings are kept in the data
-   model and export but are not shown in the UI.
-7. **Canonical ad-metrics columns** (`canonicalize.ts`) — when a table has ≥2 columns
-   matching the canonical vocabulary (**Date, Day, Total Adspend, Clicks, CPC, Revenue,
-   Conversions, ROAS, CVR** — synonyms like "Spend", "Cost", "Purchases", "Conv Rate" are
-   mapped), headers are renamed onto it (original text preserved), missing derivable
-   metrics are computed (Day from Date; CPC = Adspend/Clicks; ROAS = Revenue/Adspend;
-   CVR = Conversions/Clicks), and canonical columns are shown first (others stay in the
-   Columns menu).
+Roles (`SUPER_ADMIN`/`ADMIN`/`ANALYST`/`VIEWER`) exist on the session for future gating; the
+role-based admin UIs and per-company assignments from the full spec are not built in this phase.
 
-### Computed columns (Excel-style formulas)
+## Datasets & analytics
 
-Users can add columns via **+ Add column** on any table: a name plus a formula such as
-`[Revenue] - [Total Adspend]` or `Revenue / Clicks`. Formulas support `+ - * /`,
-parentheses, and bracketed column references; they are parsed by a tiny safe evaluator
-(`formula.ts`, no `eval`), computed server-side per row, persisted, and re-applied when the
-table is re-extracted after a range/split/merge correction. Division by zero or missing
-values yield blank cells, like Excel errors suppressed.
+- **Datasets = approved Databricks tables.** The workspace lists tables in the approved schema
+  (`DATABRICKS_CATALOG.DATABRICKS_SCHEMA`, default `dev_catalog_for_individual_use.kevin_dev`)
+  whose names carry the managed `excel_` prefix. Each becomes a card on `/` and opens at
+  `/datasets/[name]`.
+- **Canonical columns** shown for every dataset: **Date, Day, Total Adspend, Clicks, CPC, Revenue,
+  Conversions, ROAS, CVR** (defined once in `lib/databricks/sync.ts` → `DB_COLUMNS`).
+- **Live grid** (`components/tables/data-table.tsx`, TanStack Table): sort, global search, column
+  visibility, sticky header, row numbers, horizontal scroll. Plus a client-side **date-range
+  filter** on the dataset page.
+- **Live refresh:** the dataset page re-pulls from Databricks every 30s (with request
+  cancellation), showing a live indicator, last-refreshed time, and latest data date. No page
+  reloads. Structured so polling can later be replaced by jobs/webhooks/SSE.
 
-### How to add another detection heuristic
+## API routes
 
-Each stage is a pure function over `CellMatrix`/`Region`. To add a heuristic:
-
-1. Pick the stage (region finding → `detect-tables.ts`, header logic →
-   `detect-headers.ts`, typing → `infer-types.ts`).
-2. Add the signal as a scored condition rather than a hard rule where possible, and emit a
-   `ParserWarning` when confidence is low instead of guessing silently.
-3. Add a scenario to `src/lib/excel/pipeline.test.ts` (build the sheet with
-   `XLSX.utils.aoa_to_sheet`, round-trip through a real buffer) and, if user-visible, a
-   fixture in `scripts/make-fixtures.mjs`.
-
-## API
-
-| Endpoint | Purpose |
+| Route | Purpose |
 |---|---|
-| `POST /api/workbooks/upload` | multipart upload → parse → persist |
-| `GET /api/workbooks/:id` | parsed workbook, rows truncated to preview size |
-| `PATCH /api/workbooks/:id/tables/:tableId` | corrections: rename, range, header rows, exclude, column rename/type, `addColumn` (formula), `splitAtRow`, `mergeWithTableId` |
-| `GET /api/workbooks/:id/export/json` | full normalized JSON download |
-| `GET /api/workbooks/:id/sheets/:index/grid` | capped raw grid + table overlays |
-| `GET/POST /api/samples` | dev-only fixture loader |
+| `POST /api/auth/login`, `POST /api/auth/logout` | session cookie in/out |
+| `GET /api/me` | current session user |
+| `GET /api/datasets` | list approved datasets (auth required) |
+| `GET /api/datasets/[name]` | live canonical rows for one dataset (auth + name allowlist) |
 
-Errors are `{ error: { code, message } }` with codes like `UNSUPPORTED_FILE_TYPE`,
-`FILE_TOO_LARGE`, `PASSWORD_PROTECTED`, `CORRUPT_WORKBOOK`, `EMPTY_WORKBOOK`, `NOT_FOUND`.
-
-## Configuration
-
-All limits are env vars with defaults (`src/lib/config.ts`): `EXCEL_MAX_FILE_MB` (20),
-`EXCEL_MAX_ROWS_PER_SHEET` (50 000), `EXCEL_MAX_CELLS_PER_SHEET` (2 000 000),
-`EXCEL_PREVIEW_ROWS` (1000), `EXCEL_GRID_MAX_ROWS/COLS` (300/80), `EXCEL_RETENTION_HOURS`
-(24), `EXCEL_DATA_DIR`, `EXCEL_ENABLE_SAMPLES`.
+Removed: all `/api/workbooks/**` and `/api/samples` (Excel ingestion) — now `404`.
 
 ## Security
 
-- Extension + MIME allowlist, size limit, and container magic-byte validation on upload.
-- Server-generated UUID ids only; filenames sanitized; user input never used as a path.
-- Formulas are never evaluated; macros never run (`.xlsm`/`.xlsb` rejected by extension).
-- Stored uploads swept after 24 h (configurable).
+- Server-side auth on every route (middleware) **and** in each data handler.
+- The frontend never sends SQL or a freely-chosen table name — the dataset name is validated
+  against `^[a-z0-9_]+$` **and** the managed `excel_` prefix, then wrapped in the fixed
+  `catalog.schema` (no catalog/schema traversal). Unapproved names (e.g. `path_metrics`) → `404`.
+- Read-only analytics: the app never writes to Databricks tables in this flow. String literals in
+  any generated SQL are hardened (backslash + quote escaping; see `lib/databricks/sync.ts`).
+- No Databricks credentials reach the browser (server-only modules).
+
+## Configuration
+
+Env vars (`src/lib/config.ts` + Databricks/auth): `DATABRICKS_HOST`, `DATABRICKS_TOKEN`,
+`DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_CATALOG` (default `dev_catalog_for_individual_use`),
+`DATABRICKS_SCHEMA` (default `kevin_dev`), `AUTH_SECRET`, `EXCEL_PREVIEW_ROWS` (row cap per pull,
+default 1000).
+
+## What's reused / removed / deferred
+
+- **Reused:** TanStack data grid, the safe formula engine (`lib/excel/formula.ts`), canonical
+  metric definitions, the Databricks SQL client, safe-SQL helpers, Zod validation.
+- **Removed from the app:** Excel upload page & APIs, workbook parsing/detection/correction UI,
+  Excel→Databricks sync UI, temporary upload storage, sample fixtures route.
+- **Deferred (in `REFACTOR_PLAN.md`, not this build):** PostgreSQL/Prisma, admin user/company/
+  assignment CRUD, saved views, calculated-column UI, Excel export. The formula engine and the
+  Excel parsing lib remain on disk (unlinked) for those follow-ups.
 
 ## Known limitations
 
-- A fully blank row inside one logical table splits it (fix with the **Merge** correction);
-  a blank *cell* or ragged rows do not.
-- Header detection assumes headers are string-like; all-numeric headers (e.g. years as
-  column labels) may be classified as data (`HEADER_NOT_DETECTED` — fix via
-  **Header rows** correction).
-- Merged data cells repeat their anchor value into covered cells rather than spanning.
-- Column type overrides relabel the column; they do not re-normalize cell values.
-- Preview shows the first 1,000 rows per table (scrollable, no pagination) (full data in the JSON export); the raw grid
-  view caps at 300×80 cells.
-- Storage is a local directory — single instance, no auth, uploads expire after 24 h.
-
-## Future Databricks integration
-
-Every layer keeps a stable id (`workbook → sheet → table → column`), preserved across user
-corrections, so a later phase can persist mappings:
-
-```
-Excel workbook → sheet → detected table → normalized columns
-             → Databricks catalog.schema.table → column mappings
-```
-
-`src/lib/adapters/data-source-adapter.ts` defines the `DataSourceAdapter` interface
-(`listTables`, `getSchema`, `previewRows`, `validateMapping`) plus `TableMapping` /
-`ValidationResult` types that a `DatabricksAdapter` will implement.
+- Dev-credentials auth (documented above) — not for production.
+- Datasets are read live per request/poll; no server-side caching yet. Row pulls are capped
+  (`EXCEL_PREVIEW_ROWS`, default 1000) — large tables need server-side pagination (the query
+  shape already supports it).
+- Non-canonical / extra company dimensions (Campaign, Device, …) are not yet surfaced; only the 9
+  canonical metrics are shown.

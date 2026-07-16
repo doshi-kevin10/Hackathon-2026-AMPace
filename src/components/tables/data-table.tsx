@@ -8,6 +8,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -35,10 +36,12 @@ interface DataTableProps {
   previewTruncated?: boolean;
 }
 
-/** Excel-like grid: scrollable (no pagination), gridlines, row numbers, sticky header. */
+/** Excel-like grid: scrollable, gridlines, row numbers, sticky header, sort, global search + per-column filters. */
 export function DataTable({ columns, rows, totalRowCount, previewTruncated }: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [showFilters, setShowFilters] = useState(true);
 
   // Ad-performance tables show the canonical metric columns by default;
   // everything else stays available in the Columns menu.
@@ -58,6 +61,9 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
         header: col.name,
         meta: col,
         sortUndefined: "last",
+        // Filter on the displayed text so matches line up with what the user sees.
+        filterFn: (row, columnId, value: string) =>
+          formatCell(row.original[columnId]).toLowerCase().includes(String(value).toLowerCase()),
       })),
     [columns]
   );
@@ -65,14 +71,13 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
   const table = useReactTable({
     data: rows,
     columns: columnDefs,
-    state: { sorting, globalFilter, columnVisibility },
+    state: { sorting, globalFilter, columnFilters, columnVisibility },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     globalFilterFn: (row, columnId, value: string) =>
-      String(row.getValue(columnId) ?? "")
-        .toLowerCase()
-        .includes(value.toLowerCase()),
+      formatCell(row.original[columnId]).toLowerCase().includes(value.toLowerCase()),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -80,6 +85,7 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
 
   const visibleCols = table.getVisibleLeafColumns();
   const bodyRows = table.getRowModel().rows;
+  const activeFilters = columnFilters.length + (globalFilter ? 1 : 0);
 
   const colType = (col: ParsedColumn) => col.typeOverride ?? col.inferredType;
 
@@ -89,14 +95,33 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
         <Input
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          placeholder="Search rows…"
+          placeholder="Search all columns…"
           className="h-8 w-56"
           aria-label="Search rows"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant="outline" size="sm" className="ml-auto h-8" />}
+        <Button
+          variant={showFilters ? "secondary" : "outline"}
+          size="sm"
+          className="h-8"
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          {showFilters ? "Hide column filters" : "Column filters"}
+        </Button>
+        {activeFilters > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              setColumnFilters([]);
+              setGlobalFilter("");
+            }}
           >
+            Clear filters
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="ml-auto h-8" />}>
             Columns
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
@@ -130,11 +155,7 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
                       type="button"
                       className="flex w-full items-center gap-1 hover:text-foreground"
                       onClick={header.column.getToggleSortingHandler()}
-                      title={
-                        col.formula
-                          ? `= ${col.formula}`
-                          : (col.originalHeader ?? col.name)
-                      }
+                      title={col.formula ? `= ${col.formula}` : (col.originalHeader ?? col.name)}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {col.formula && (
@@ -150,6 +171,22 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
                 );
               })}
             </tr>
+            {showFilters && (
+              <tr>
+                <th className="sticky left-0 z-20 w-10 border border-border bg-muted p-0" />
+                {table.getHeaderGroups()[0].headers.map((header) => (
+                  <th key={header.id} className="border border-border bg-muted p-1">
+                    <Input
+                      value={(header.column.getFilterValue() as string) ?? ""}
+                      onChange={(e) => header.column.setFilterValue(e.target.value)}
+                      placeholder="Filter…"
+                      className="h-6 w-full min-w-20 text-xs font-normal"
+                      aria-label={`Filter ${(header.column.columnDef.meta as ParsedColumn).name}`}
+                    />
+                  </th>
+                ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {bodyRows.length === 0 ? (
@@ -158,7 +195,7 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
                   colSpan={visibleCols.length + 1}
                   className="h-20 border border-border text-center text-muted-foreground"
                 >
-                  {rows.length === 0 ? "This table has no data rows." : "No rows match your search."}
+                  {rows.length === 0 ? "This table has no data rows." : "No rows match the current filters."}
                 </td>
               </tr>
             ) : (

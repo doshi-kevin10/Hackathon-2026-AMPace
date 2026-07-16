@@ -26,7 +26,7 @@ const regionOf = (t: ParsedTable): Region => ({
   c1: t.source.endColumn,
 });
 
-/** Re-apply persisted user formula columns after a table was rebuilt from the sheet. */
+/** Re-apply persisted user formula columns (and keep the Databricks mapping) after a rebuild. */
 const reapplyComputedColumns = (table: ParsedTable, specs: { name: string; formula: string }[]): void => {
   for (const spec of specs) {
     try {
@@ -143,6 +143,7 @@ export function applyTablePatch(
       );
       const bottom = extractTable(matrix, { ...region, r0: splitRow }, { index: tableIndex + 1 });
       reapplyComputedColumns(top, table.computedColumns);
+      top.databricks = table.databricks;
       newTables = [applySimpleFields(top, patch), bottom];
     } else if (patch.mergeWithTableId !== undefined) {
       const other = sheet.tables.find((t) => t.id === patch.mergeWithTableId);
@@ -163,6 +164,7 @@ export function applyTablePatch(
         company: table.company,
       });
       reapplyComputedColumns(merged, table.computedColumns);
+      merged.databricks = table.databricks;
       sheet.tables = sheet.tables.filter((t) => t.id !== other.id);
       newTables = [applySimpleFields(merged, patch)];
     } else {
@@ -181,6 +183,7 @@ export function applyTablePatch(
         company: table.company,
       });
       reapplyComputedColumns(reExtracted, table.computedColumns);
+      reExtracted.databricks = table.databricks;
       newTables = [applySimpleFields(reExtracted, patch)];
     }
   }

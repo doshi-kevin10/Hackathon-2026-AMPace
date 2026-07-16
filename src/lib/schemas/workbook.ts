@@ -72,6 +72,15 @@ export const ParsedTableSchema = z.object({
   rowCount: z.number().int(),
   previewTruncated: z.boolean().optional(),
   excluded: z.boolean(),
+  /** Databricks mapping once the table has been synced (name within the dev schema). */
+  databricks: z
+    .object({
+      table: z.string(),
+      lastSyncedAt: z.string(),
+      rowCount: z.number().int(),
+    })
+    .nullable()
+    .default(null),
   /** User-added formula columns, re-applied whenever the table is re-extracted. */
   computedColumns: z.array(z.object({ name: z.string(), formula: z.string() })).default([]),
   /**

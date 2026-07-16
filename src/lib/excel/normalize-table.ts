@@ -182,6 +182,7 @@ export function extractTable(matrix: CellMatrix, region: Region, opts: ExtractOp
     rows,
     rowCount: rows.length,
     excluded: false,
+    databricks: null,
     computedColumns: [],
     company: opts.company ?? null,
     warnings,
