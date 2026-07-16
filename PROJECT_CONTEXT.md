@@ -1,18 +1,30 @@
-# Excel Table Studio - Project Context
+# AMPulse - Project Context
+
+> Product pivoted 2026-07-16: Excel-parser → **Databricks-backed live analytics workspace** (login-gated). Excel is no longer an input.
 
 ## Current Status
 - Created: 2026-07-16
-- Status: Active (phase-1 MVP complete)
-- Current version: v01
+- Status: Active (pivoted MVP — auth + live Databricks analytics)
+- Current version: v02 (pivot)
 - Last conversation: 2026-07-16
 
 ## Active Tasks
-- [x] Phase-1 MVP: upload → parse → detect tables → review/correct → export JSON (2026-07-16)
-- [x] Phase 2: Databricks sync (Excel→kevin_dev) + live mirror (Databricks→UI, 30s poll) (2026-07-16)
-- [ ] Phase 2b (future): scheduled Databricks-side refresh / webhook instead of UI polling; write-back to Excel
-- [ ] Nice-to-have: allow creating a table from an ignored region; virtualized raw grid for huge sheets
+- [x] Phase-1 (superseded): Excel upload → parse → detect → correct → JSON (2026-07-16)
+- [x] Phase-2 (superseded): Excel→Databricks sync + live mirror (2026-07-16)
+- [x] PIVOT: descoped Databricks analytics workspace — auth, dataset browse, sort/filter, live 30s refresh (2026-07-16)
+- [ ] Deferred from full spec (REFACTOR_PLAN.md): Postgres/Prisma, roles+admin CRUD, saved views, calc-column UI, Excel export
+- [ ] Follow-up cleanup: delete now-unlinked Excel parser lib + orphaned fixtures/client-api/adapters
 
 ## Recent Changes (Last 30 Days)
+### 2026-07-16 - PIVOT to Databricks analytics workspace (descoped from full spec)
+- User pivoted product: Databricks = source of truth; Excel removed as input. Descoped the 6-stage spec to: auth + display Databricks tables + sort/filter + live refresh. No Postgres (use Kevin's Databricks workspace). See REFACTOR_PLAN.md §0.
+- Auth (dev-only, no DB): `lib/auth/` — dev users in `config.ts`; `jose`-signed JWT cookie session (`session.ts`, edge-safe); node-only scrypt password check (`credentials.ts`); `server.ts` guards. `middleware.ts` gates all routes (pages→/login, api→401). Routes: `/login`, `/api/auth/{login,logout}`, `/api/me`.
+- **Gotcha fixed:** middleware runs on edge; must NOT import `node:crypto`. Split password check into `credentials.ts` (node) vs `session.ts` (jose/edge) — importing crypto into middleware 500s every route.
+- Analytics: `lib/databricks/analytics.ts` — `listDatasets()` (SHOW TABLES LIKE 'excel_*' in kevin_dev), `getDatasetRows()` reuses `sync.pullLiveTable`. Name allowlist (`^[a-z0-9_]+$` + `excel_` prefix) blocks traversal/injection. APIs `/api/datasets`, `/api/datasets/[name]` (auth + allowlist).
+- UI: `/` dashboard (dataset cards), `/datasets/[name]` (live grid via reused `data-table.tsx`, sort/search + client date-range filter, 30s poll w/ AbortController, freshness indicators), `app-header` w/ logout. Rebranded to AMPulse.
+- Removed: `app/api/workbooks/**`, `app/api/samples`, `app/workbooks/**`, `components/upload/*`, `components/workbook/*`, old upload e2e (19 files). Excel parser lib LEFT on disk (unlinked) for later deletion.
+- Verified: 32/32 vitest (added auth session + dataset-allowlist tests), 2/2 new e2e (unauth redirect + analyst login→cards→grid), prod build green, browser sweep clean (login→dashboard→grid→sort→date-filter 201→5→search→logout). API checks: unauth 401, removed upload 404, `path_metrics` rejected 404, login+me+datasets(8)+rows(9 canonical cols) OK.
+
 ### 2026-07-16 - Databricks sync + live mirror (phase 2 start)
 - `src/lib/databricks/client.ts`: minimal SQL Statement Execution API client (REST, env auth: DATABRICKS_HOST/TOKEN, warehouse default `060a27190dd3ecb5` dev-SQLusers serverless, override DATABRICKS_WAREHOUSE_ID)
 - `src/lib/databricks/sync.ts`: pushes eligible (canonical) tables to `dev_catalog_for_individual_use.kevin_dev.excel_<wb>_<sheet>_<table>` with fixed 9-col schema (Date, Day, Total_Adspend, Clicks, CPC, Revenue, Conversions, ROAS, CVR); only `excel_`-prefixed tables writable; dateless (TOTAL) rows filtered; `pullLiveTable` reads back for UI
@@ -48,6 +60,9 @@
 | Purpose | Path |
 |---------|------|
 | GitHub repo | https://github.com/doshi-kevin10/Hackathon-2026-AMPace (branch: main) |
+| Auth | src/lib/auth/ (config, session[jose], credentials[node], server, middleware.ts) |
+| Analytics layer | src/lib/databricks/analytics.ts (+ reuses sync.pullLiveTable) |
+| New pages | src/app/{login,page(dashboard),datasets/[name]}, components/{app-header,dashboard,dataset-view} |
 | App root | /Users/kdoshi/Desktop/AMPulse/excel-parser |
 | Parser pipeline | src/lib/excel/ |
 | Shared Zod schemas/types | src/lib/schemas/workbook.ts |
@@ -57,6 +72,8 @@
 | Future Databricks interface | src/lib/adapters/data-source-adapter.ts |
 
 ## Known Issues
+- Dev-credentials auth only (plaintext demo pwds in config) — NOT for production; swap for Auth.js/Clerk
+- Excel parser lib + fixtures still on disk but unlinked (dead code pending cleanup)
 - Blank row inside one logical table splits it (user fixes via Merge correction)
 - All-numeric header rows may be detected as data (user fixes via Header rows correction)
 - `react-hooks/incompatible-library` lint warnings from TanStack Table (benign, upstream)
@@ -67,5 +84,5 @@
 </details>
 
 ## Context Metadata
-- Last updated: 2026-07-16 12:45
-- Update count: 4
+- Last updated: 2026-07-16 13:55
+- Update count: 5

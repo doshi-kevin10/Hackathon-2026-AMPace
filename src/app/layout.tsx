@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Excel Table Studio",
-  description: "Upload Excel workbooks, auto-detect tables, review and export normalized data",
+  title: "AMPulse — Live Advertising Analytics",
+  description: "Permission-scoped, live advertising analytics backed by Databricks",
 };
 
 export default function RootLayout({
