@@ -213,7 +213,15 @@ export function DatasetView({ name }: { name: string }) {
             </TabsContent>
 
             <TabsContent value="data">
-              <DataTable columns={augmented.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
+              {/* Remount when the column SET changes (calc column added/removed) so
+                  TanStack state can't keep referencing a removed calc column id.
+                  The key is stable across the 30s refresh and date filtering. */}
+              <DataTable
+                key={augmented.columns.map((c) => c.id).join(",")}
+                columns={augmented.columns}
+                rows={filteredRows}
+                totalRowCount={filteredRows.length}
+              />
             </TabsContent>
           </Tabs>
         </>
