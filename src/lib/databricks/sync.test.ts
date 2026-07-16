@@ -29,6 +29,18 @@ describe("databricks sync SQL", () => {
     expect(rowTuple(row, ids)).toBe("(DATE'2025-10-01','It''s Wed',NULL,NULL,NULL,NULL,NULL,NULL,NULL)");
   });
 
+  it("neutralizes backslash breakout and injection attempts in string cells", () => {
+    const ids = [null, "day", null, null, null, null, null, null, null];
+    // A trailing backslash must not escape the closing quote...
+    expect(rowTuple({ day: cell("evil\\") }, ids)).toBe(
+      "(NULL,'evil\\\\',NULL,NULL,NULL,NULL,NULL,NULL,NULL)"
+    );
+    // ...and quotes/SQL stay inert data.
+    expect(rowTuple({ day: cell("'); DROP TABLE x; --") }, ids)).toBe(
+      "(NULL,'''); DROP TABLE x; --',NULL,NULL,NULL,NULL,NULL,NULL,NULL)"
+    );
+  });
+
   it("rounds BIGINT columns and passes DOUBLEs through", () => {
     const ids = [null, null, "spend", "clicks", null, null, "conv", null, null];
     const row: Record<string, CellValue> = {

@@ -51,7 +51,19 @@ const assertManaged = (table: string): void => {
 
 // ---------- SQL literal rendering ----------
 
-const sqlString = (s: string): string => `'${s.replace(/'/g, "''").slice(0, 1000)}'`;
+/**
+ * Spark SQL's default lexer treats backslash as an escape character, so a
+ * value ending in `\` would swallow the closing quote — escape backslashes
+ * AND double single-quotes (safe under both escapedStringLiterals modes),
+ * and drop control characters. Cell text is the only untrusted literal:
+ * numbers/dates are rendered from validated primitives.
+ */
+const sqlString = (s: string): string =>
+  `'${s
+    .slice(0, 1000)
+    .replace(/[\u0000-\u001f]/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "''")}'`;
 
 const toDateLiteral = (cell: CellValue | undefined): string => {
   const v = cell?.normalized;
