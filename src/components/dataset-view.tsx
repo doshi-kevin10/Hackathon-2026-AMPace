@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { CompanyMonitor } from "@/components/analytics/company-monitor";
+import { hasChartableData, TableAnalytics } from "@/components/analytics/table-analytics";
+import { DataTable } from "@/components/tables/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable } from "@/components/tables/data-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CellValue, ParsedColumn } from "@/lib/schemas/workbook";
 
 const POLL_MS = 30_000;
@@ -17,6 +20,7 @@ interface LiveData {
   databricksTable: string;
   fetchedAt: string;
   label: string;
+  company: string;
 }
 
 export function DatasetView({ name }: { name: string }) {
@@ -63,7 +67,7 @@ export function DatasetView({ name }: { name: string }) {
     [data]
   );
 
-  // Client-side date-range filter (instant — no server round trip).
+  // Client-side date-range filter (instant — no server round trip). Feeds both the grid and the charts.
   const filteredRows = useMemo(() => {
     if (!data) return [];
     if (!dateColId || (!from && !to)) return data.rows;
@@ -148,7 +152,25 @@ export function DatasetView({ name }: { name: string }) {
             </span>
           </div>
 
-          <DataTable columns={data.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
+          <Tabs defaultValue="analytics">
+            <TabsList className="mb-4">
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="data">Data</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="analytics" className="grid gap-6">
+              {hasChartableData({ columns: data.columns, rows: filteredRows }) ? (
+                <TableAnalytics table={{ columns: data.columns, rows: filteredRows }} />
+              ) : (
+                <p className="text-sm text-muted-foreground">No numeric data to chart yet.</p>
+              )}
+              <CompanyMonitor datasetName={name} company={data.company} />
+            </TabsContent>
+
+            <TabsContent value="data">
+              <DataTable columns={data.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </main>

@@ -14,8 +14,9 @@ import {
   histogram,
   lineSeries,
   numericColumns,
-} from "@/lib/excel/chart-data";
-import type { ParsedColumn, ParsedTable } from "@/lib/schemas/workbook";
+  type AnalyticsTable,
+} from "@/lib/analytics/chart-data";
+import type { ParsedColumn } from "@/lib/schemas/workbook";
 
 const SERIES_COLORS = [
   "var(--chart-1)",
@@ -31,7 +32,7 @@ const SERIES_COLORS = [
 const formatterFor = (col: ParsedColumn) =>
   (col.typeOverride ?? col.inferredType) === "percentage" ? percentFormat : compactNumber;
 
-export function TableAnalytics({ table }: { table: ParsedTable }) {
+export function TableAnalytics({ table }: { table: AnalyticsTable }) {
   const numCols = useMemo(() => numericColumns(table), [table]);
   const dateCol = useMemo(() => dateColumn(table), [table]);
   const catCols = useMemo(() => categoricalColumns(table), [table]);
@@ -211,4 +212,4 @@ export function TableAnalytics({ table }: { table: ParsedTable }) {
   );
 }
 
-export const hasChartableData = (table: ParsedTable): boolean => numericColumns(table).length > 0;
+export const hasChartableData = (table: AnalyticsTable): boolean => numericColumns(table).length > 0;

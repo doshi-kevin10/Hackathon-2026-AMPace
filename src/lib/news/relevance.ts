@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import type { Anomaly } from "@/lib/excel/anomalies";
+import type { Anomaly } from "@/lib/analytics/anomalies";
 import type { NewsItem } from "./google-news";
 
 const RelevanceResultSchema = z.object({

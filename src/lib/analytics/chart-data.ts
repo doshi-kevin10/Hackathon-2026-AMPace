@@ -1,15 +1,21 @@
-import type { ColumnType, ParsedColumn, ParsedTable } from "@/lib/schemas/workbook";
+import type { CellValue, ColumnType, ParsedColumn } from "@/lib/schemas/workbook";
+
+/** Anything shaped like a live analytics table — a dataset pull or a parsed workbook table. */
+export interface AnalyticsTable {
+  columns: ParsedColumn[];
+  rows: Record<string, CellValue>[];
+}
 
 const NUMERIC_TYPES = new Set<ColumnType>(["integer", "decimal", "currency", "percentage"]);
 const DATE_TYPES = new Set<ColumnType>(["date", "datetime"]);
 
 const effectiveType = (c: ParsedColumn): ColumnType => c.typeOverride ?? c.inferredType;
 
-export const numericColumns = (table: ParsedTable): ParsedColumn[] =>
+export const numericColumns = (table: AnalyticsTable): ParsedColumn[] =>
   table.columns.filter((c) => NUMERIC_TYPES.has(effectiveType(c)));
 
 /** Prefer an actual date/datetime column; fall back to a column literally named "Date". */
-export const dateColumn = (table: ParsedTable): ParsedColumn | undefined =>
+export const dateColumn = (table: AnalyticsTable): ParsedColumn | undefined =>
   table.columns.find((c) => DATE_TYPES.has(effectiveType(c))) ??
   table.columns.find((c) => c.name === "Date");
 
@@ -22,7 +28,7 @@ export interface CategoricalOption {
  * String columns worth grouping by: a handful of repeating values, not a
  * mostly-unique text field (e.g. a free-text note column).
  */
-export const categoricalColumns = (table: ParsedTable): CategoricalOption[] => {
+export const categoricalColumns = (table: AnalyticsTable): CategoricalOption[] => {
   const out: CategoricalOption[] = [];
   for (const col of table.columns) {
     if (effectiveType(col) !== "string") continue;
@@ -48,7 +54,7 @@ export interface SeriesPoint {
 }
 
 /** One column's values plotted against an x (date) column, sorted ascending. */
-export function lineSeries(table: ParsedTable, xColumn: ParsedColumn, valueColumn: ParsedColumn): SeriesPoint[] {
+export function lineSeries(table: AnalyticsTable, xColumn: ParsedColumn, valueColumn: ParsedColumn): SeriesPoint[] {
   const points = table.rows.map((row, i) => {
     const xCell = row[xColumn.id];
     const iso = typeof xCell?.normalized === "string" ? xCell.normalized : null;
@@ -68,7 +74,7 @@ export interface CategoryPoint {
 
 /** Sum (or average) a numeric column grouped by a categorical column, sorted descending. */
 export function categoryAggregate(
-  table: ParsedTable,
+  table: AnalyticsTable,
   catColumn: ParsedColumn,
   valueColumn: ParsedColumn,
   agg: "sum" | "avg" = "sum"
@@ -94,7 +100,7 @@ const formatBucketBound = (n: number): string =>
   Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}k` : Number.isInteger(n) ? String(n) : n.toFixed(1);
 
 /** Bucket a numeric column's values into equal-width bins for a distribution chart. */
-export function histogram(table: ParsedTable, valueColumn: ParsedColumn, bucketCount = 8): CategoryPoint[] {
+export function histogram(table: AnalyticsTable, valueColumn: ParsedColumn, bucketCount = 8): CategoryPoint[] {
   const values = table.rows
     .map((row) => Number(row[valueColumn.id]?.normalized))
     .filter((n) => Number.isFinite(n));

@@ -1,5 +1,4 @@
-import type { ParsedTable } from "@/lib/schemas/workbook";
-import { dateColumn, lineSeries, numericColumns } from "./chart-data";
+import { dateColumn, lineSeries, numericColumns, type AnalyticsTable } from "./chart-data";
 
 export interface Anomaly {
   /** Stable key so repeated detection runs (and the alert dedup store) can identify the same event. */
@@ -18,7 +17,7 @@ export interface Anomaly {
 const DEFAULT_THRESHOLD = 0.3;
 
 /** Day-over-day jumps/drops beyond `threshold` (default 30%), across every numeric metric with a date axis. */
-export function detectAnomalies(table: ParsedTable, threshold = DEFAULT_THRESHOLD): Anomaly[] {
+export function detectAnomalies(table: AnalyticsTable, threshold = DEFAULT_THRESHOLD): Anomaly[] {
   const dateCol = dateColumn(table);
   if (!dateCol) return [];
 

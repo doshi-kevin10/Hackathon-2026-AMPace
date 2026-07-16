@@ -59,10 +59,10 @@ export const isValidDatasetName = (name: string): boolean =>
   VALID_NAME.test(name) && name.startsWith(MANAGED_PREFIX);
 
 /** Current canonical-metric rows for one dataset (live from Databricks). */
-export async function getDatasetRows(name: string): Promise<LiveTable & { label: string }> {
+export async function getDatasetRows(name: string): Promise<LiveTable & { label: string; company: string }> {
   if (!isValidDatasetName(name)) {
     throw new Error(`Unknown dataset "${name}"`);
   }
   const live = await pullLiveTable(name);
-  return { ...live, label: prettify(name) };
+  return { ...live, label: prettify(name), company: titleToken(coreName(name).split("_")[0] || name) };
 }
