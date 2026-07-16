@@ -36,6 +36,13 @@ export function KpiSummary({
     const cpc = adspend != null && clicks ? adspend / clicks : null;
     const roas = revenue != null && adspend ? revenue / adspend : null;
     const cvr = conversions != null && clicks ? conversions / clicks : null;
+    const cpa = adspend != null && conversions ? adspend / conversions : null;
+
+    // Companies that track CPA (relabeled at the read layer) show CPA, not ROAS.
+    const tracksCpa = columns.some((c) => c.name === "CPA");
+    const headline = tracksCpa
+      ? { label: "CPA", value: cpa, fmt: "usd" as const }
+      : { label: "ROAS", value: roas, fmt: "x" as const };
 
     return [
       { label: "Total adspend", value: adspend, fmt: "usd" as const },
@@ -43,7 +50,7 @@ export function KpiSummary({
       { label: "CPC", value: cpc, fmt: "usd" as const },
       { label: "Revenue", value: revenue, fmt: "usd" as const },
       { label: "Conversions", value: conversions, fmt: "int" as const },
-      { label: "ROAS", value: roas, fmt: "x" as const },
+      headline,
       { label: "CVR", value: cvr, fmt: "pct" as const },
     ];
   }, [columns, rows]);

@@ -48,9 +48,11 @@ export function DataTable({ columns, rows, totalRowCount, previewTruncated }: Da
   // are always shown — the user just created them.
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
     if (!isCanonicalTable({ columns })) return {};
-    const canonical = new Set<string>(CANONICAL_ORDER);
+    // Keep canonical metrics + CPA (relabeled ROAS) + user calc columns visible;
+    // only extra source columns start hidden.
+    const alwaysShow = new Set<string>([...CANONICAL_ORDER, "CPA"]);
     return Object.fromEntries(
-      columns.filter((c) => !canonical.has(c.name) && c.formula == null).map((c) => [c.id, false])
+      columns.filter((c) => !alwaysShow.has(c.name) && c.formula == null).map((c) => [c.id, false])
     );
   });
 

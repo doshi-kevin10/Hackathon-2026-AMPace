@@ -82,10 +82,21 @@ export function Dashboard() {
 
                   <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3">
                     <div>
-                      <p className="text-sm font-semibold tabular-nums">
-                        {d.avgRoas != null ? `${d.avgRoas.toLocaleString("en", { maximumFractionDigits: 1 })}×` : "—"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">Avg ROAS</p>
+                      {d.usesCpa ? (
+                        <>
+                          <p className="text-sm font-semibold tabular-nums">
+                            {d.avgCpa != null ? `$${d.avgCpa.toLocaleString("en", { maximumFractionDigits: 2 })}` : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Avg CPA</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold tabular-nums">
+                            {d.avgRoas != null ? `${d.avgRoas.toLocaleString("en", { maximumFractionDigits: 1 })}×` : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Avg ROAS</p>
+                        </>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-semibold tabular-nums">

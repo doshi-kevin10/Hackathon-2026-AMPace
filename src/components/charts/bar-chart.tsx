@@ -59,7 +59,8 @@ export function BarChart({ data, height = 180, color = "var(--chart-1)", formatV
           const y = PAD.top + plotH - h;
           const isHover = hover === i;
           return (
-            <g key={d.label}>
+            // key by index: histogram bucket labels can repeat (e.g. "2.2k–2.2k").
+            <g key={i}>
               <rect
                 x={cx - bandW / 2}
                 y={PAD.top}
