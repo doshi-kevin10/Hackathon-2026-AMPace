@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Chatbot } from "@/components/analytics/chatbot";
 import { CompanyMonitor } from "@/components/analytics/company-monitor";
+import { GoalTracker } from "@/components/analytics/goal-tracker";
+import { NewsSidebar } from "@/components/analytics/news-sidebar";
 import { hasChartableData, TableAnalytics } from "@/components/analytics/table-analytics";
+import { useMonitor } from "@/components/analytics/use-monitor";
 import { KpiSummary } from "@/components/kpi-summary";
 import { DataTable } from "@/components/tables/data-table";
 import { Button } from "@/components/ui/button";
@@ -30,6 +34,7 @@ export function DatasetView({ name }: { name: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const { data: monitorData, error: monitorError } = useMonitor(name);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +102,7 @@ export function DatasetView({ name }: { name: string }) {
   const hasDates = latestDate != null;
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-6">
+    <main className="mx-auto max-w-[1600px] px-6 py-6">
       <div className="mb-4">
         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
           ← All companies
@@ -114,67 +119,75 @@ export function DatasetView({ name }: { name: string }) {
           <Skeleton className="h-96 w-full" />
         </div>
       ) : (
-        <>
-          <div className="mb-5 flex flex-wrap items-end gap-x-6 gap-y-3">
-            <div className="mr-auto">
-              <h1 className="text-2xl font-semibold tracking-tight">{data.label}</h1>
-              <p className="font-mono text-xs text-muted-foreground">{data.databricksTable}</p>
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="min-w-0 flex-1">
+            <div className="mb-5 flex flex-wrap items-end gap-x-6 gap-y-3">
+              <div className="mr-auto">
+                <h1 className="text-2xl font-semibold tracking-tight">{data.label}</h1>
+                <p className="font-mono text-xs text-muted-foreground">{data.databricksTable}</p>
+              </div>
+
+              {hasDates && (
+                <>
+                  <div className="grid gap-1">
+                    <Label htmlFor="from" className="text-xs">From date</Label>
+                    <Input id="from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-8 w-40" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor="to" className="text-xs">To date</Label>
+                    <Input id="to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-8 w-40" />
+                  </div>
+                  {(from || to) && (
+                    <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>
+                      Clear dates
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
 
-            {hasDates && (
-              <>
-                <div className="grid gap-1">
-                  <Label htmlFor="from" className="text-xs">From date</Label>
-                  <Input id="from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-8 w-40" />
-                </div>
-                <div className="grid gap-1">
-                  <Label htmlFor="to" className="text-xs">To date</Label>
-                  <Input id="to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-8 w-40" />
-                </div>
-                {(from || to) && (
-                  <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>
-                    Clear dates
-                  </Button>
+            <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className={`h-2 w-2 rounded-full ${refreshing ? "animate-pulse bg-amber-500" : "bg-emerald-500"}`} aria-hidden />
+                {refreshing ? "Refreshing…" : "Live"} · auto-refreshes every 30s
+              </span>
+              <span>Last refreshed {new Date(data.fetchedAt).toLocaleTimeString()}</span>
+              {latestDate && <span>Latest data: {latestDate}</span>}
+              <span>
+                {filteredRows.length.toLocaleString()}
+                {filteredRows.length !== data.rows.length && ` of ${data.rows.length.toLocaleString()}`} rows
+              </span>
+            </div>
+
+            <KpiSummary columns={data.columns} rows={filteredRows} />
+
+            <Tabs defaultValue="analytics">
+              <TabsList className="mb-4">
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="data">Data</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="analytics" className="grid gap-6">
+                <GoalTracker datasetName={name} table={{ columns: data.columns, rows: filteredRows }} />
+                {hasChartableData({ columns: data.columns, rows: filteredRows }) ? (
+                  <TableAnalytics table={{ columns: data.columns, rows: filteredRows }} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">No numeric data to chart yet.</p>
                 )}
-              </>
-            )}
+                <CompanyMonitor company={data.label} data={monitorData} error={monitorError} />
+              </TabsContent>
+
+              <TabsContent value="data">
+                <DataTable columns={data.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
+              </TabsContent>
+            </Tabs>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className={`h-2 w-2 rounded-full ${refreshing ? "animate-pulse bg-amber-500" : "bg-emerald-500"}`} aria-hidden />
-              {refreshing ? "Refreshing…" : "Live"} · auto-refreshes every 30s
-            </span>
-            <span>Last refreshed {new Date(data.fetchedAt).toLocaleTimeString()}</span>
-            {latestDate && <span>Latest data: {latestDate}</span>}
-            <span>
-              {filteredRows.length.toLocaleString()}
-              {filteredRows.length !== data.rows.length && ` of ${data.rows.length.toLocaleString()}`} rows
-            </span>
-          </div>
-
-          <KpiSummary columns={data.columns} rows={filteredRows} />
-
-          <Tabs defaultValue="analytics">
-            <TabsList className="mb-4">
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="data">Data</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="analytics" className="grid gap-6">
-              {hasChartableData({ columns: data.columns, rows: filteredRows }) ? (
-                <TableAnalytics table={{ columns: data.columns, rows: filteredRows }} />
-              ) : (
-                <p className="text-sm text-muted-foreground">No numeric data to chart yet.</p>
-              )}
-              <CompanyMonitor datasetName={name} company={data.label} />
-            </TabsContent>
-
-            <TabsContent value="data">
-              <DataTable columns={data.columns} rows={filteredRows} totalRowCount={filteredRows.length} />
-            </TabsContent>
-          </Tabs>
-        </>
+          <aside className="grid w-full gap-6 lg:w-[340px] lg:shrink-0">
+            <NewsSidebar news={monitorData?.news ?? []} />
+            <Chatbot />
+          </aside>
+        </div>
       )}
     </main>
   );

@@ -1,49 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { MonitorResponse } from "@/lib/schemas/monitor";
-import { cn } from "@/lib/utils";
 
-const POLL_MS = 45_000;
 const MAX_ANOMALIES = 5;
 
-function useMonitor(datasetName: string) {
-  const [data, setData] = useState<MonitorResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const tick = () => {
-      fetch(`/api/datasets/${datasetName}/monitor`)
-        .then(async (r) => {
-          const body = await r.json();
-          if (!r.ok) throw new Error(body?.error?.message ?? "Monitor request failed");
-          if (!cancelled) {
-            setData(body);
-            setError(null);
-          }
-        })
-        .catch((e) => {
-          if (!cancelled) setError(e instanceof Error ? e.message : "Failed to check for updates");
-        });
-    };
-
-    tick();
-    const id = setInterval(tick, POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [datasetName]);
-
-  return { data, error };
-}
-
-/** Live news + anomaly monitoring for one dataset's company — company comes from the dataset itself. */
-export function CompanyMonitor({ datasetName, company }: { datasetName: string; company: string }) {
-  const { data, error } = useMonitor(datasetName);
-
+/** Anomaly ("unusual moves") panel — news now lives in the sidebar (NewsSidebar). */
+export function CompanyMonitor({
+  company,
+  data,
+  error,
+}: {
+  company: string;
+  data: MonitorResponse | null;
+  error: string | null;
+}) {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -91,32 +61,6 @@ export function CompanyMonitor({ datasetName, company }: { datasetName: string; 
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {data && (
-        <div className="grid gap-1.5">
-          <p className="text-xs font-semibold text-muted-foreground">Recent news</p>
-          {data.news.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No recent headlines found.</p>
-          ) : (
-            data.news.map((n, i) => (
-              <a
-                key={i}
-                href={n.link}
-                target="_blank"
-                rel="noreferrer"
-                title={n.reason ?? undefined}
-                className={cn(
-                  "text-xs underline underline-offset-2",
-                  n.relevant ? "text-red-600 dark:text-red-400" : "text-foreground"
-                )}
-              >
-                {n.title}
-                {n.source && <span className="text-muted-foreground"> — {n.source}</span>}
-              </a>
-            ))
-          )}
         </div>
       )}
     </div>

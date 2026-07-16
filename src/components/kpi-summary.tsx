@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { computeKpiTotals } from "@/lib/analytics/kpi";
 import type { CellValue, ParsedColumn } from "@/lib/schemas/workbook";
 
 /** Aggregate KPIs computed from the currently-visible (filtered) rows. */
@@ -12,31 +13,7 @@ export function KpiSummary({
   rows: Record<string, CellValue>[];
 }) {
   const kpis = useMemo(() => {
-    const id = (name: string) => columns.find((c) => c.name === name)?.id;
-    const sum = (name: string) => {
-      const colId = id(name);
-      if (!colId) return null;
-      let total = 0;
-      let seen = false;
-      for (const r of rows) {
-        const v = Number(r[colId]?.normalized);
-        if (Number.isFinite(v)) {
-          total += v;
-          seen = true;
-        }
-      }
-      return seen ? total : null;
-    };
-
-    const adspend = sum("Total Adspend");
-    const clicks = sum("Clicks");
-    const revenue = sum("Revenue");
-    const conversions = sum("Conversions");
-    // Ratios are computed from the totals (not averaged) so they stay correct under filtering.
-    const cpc = adspend != null && clicks ? adspend / clicks : null;
-    const roas = revenue != null && adspend ? revenue / adspend : null;
-    const cvr = conversions != null && clicks ? conversions / clicks : null;
-
+    const { adspend, clicks, cpc, revenue, conversions, roas, cvr } = computeKpiTotals({ columns, rows });
     return [
       { label: "Total adspend", value: adspend, fmt: "usd" as const },
       { label: "Clicks", value: clicks, fmt: "int" as const },

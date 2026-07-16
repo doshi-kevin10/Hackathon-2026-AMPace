@@ -5,6 +5,10 @@ export const NewsItemSchema = z.object({
   link: z.string(),
   publishedAt: z.string(),
   source: z.string().nullable(),
+  /** Short excerpt, when the RSS description carried more than a repeated title. */
+  snippet: z.string().nullable(),
+  /** Best-effort — Google News RSS rarely embeds one. */
+  imageUrl: z.string().nullable(),
   /** null when the relevance engine (ANTHROPIC_API_KEY) isn't configured. */
   relevant: z.boolean().nullable(),
   reason: z.string().nullable(),
