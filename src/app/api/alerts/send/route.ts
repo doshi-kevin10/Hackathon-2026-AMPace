@@ -6,13 +6,15 @@ import { requireUser } from "@/lib/auth/server";
 
 export const runtime = "nodejs";
 
+// nullish (not optional): the chatbot sends `null` for company/dataset when no
+// company is open (home screen), so plain .optional() would 400 the request.
 const BodySchema = z.object({
   /** What the user typed (for logging / future personalization). */
-  prompt: z.string().max(2000).optional(),
+  prompt: z.string().max(2000).nullish(),
   /** Company display label, e.g. "Nike". */
-  company: z.string().max(120).optional(),
+  company: z.string().max(120).nullish(),
   /** Dataset slug, e.g. "excel_company_nike" — used for the deep link and owner mapping. */
-  dataset: z.string().max(120).optional(),
+  dataset: z.string().max(120).nullish(),
 });
 
 /**
