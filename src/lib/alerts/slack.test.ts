@@ -12,7 +12,7 @@ const buttonUrls = (msg: Record<string, unknown>): string[] =>
 describe("buildSlackMessage", () => {
   const original = process.env.APP_BASE_URL;
   beforeEach(() => {
-    process.env.APP_BASE_URL = "https://ampulse.example.com";
+    process.env.APP_BASE_URL = "https://ampace.example.com";
   });
   afterEach(() => {
     if (original === undefined) delete process.env.APP_BASE_URL;
@@ -31,7 +31,7 @@ describe("buildSlackMessage", () => {
 
   it("resolves the primary button to an absolute URL from the app base", () => {
     const urls = buttonUrls(buildSlackMessage({ ...base, href: "/datasets/acme/analytics" }));
-    expect(urls).toContain("https://ampulse.example.com/datasets/acme/analytics");
+    expect(urls).toContain("https://ampace.example.com/datasets/acme/analytics");
   });
 
   it("adds a second button for a news source when provided", () => {

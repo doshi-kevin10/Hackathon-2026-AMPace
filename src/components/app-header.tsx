@@ -23,7 +23,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
       <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-6 py-3">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-sm text-primary-foreground">A</span>
-          AMPulse
+          AMPace
         </Link>
         <span className="hidden text-xs text-muted-foreground sm:inline">AI automation for ad performance</span>
 

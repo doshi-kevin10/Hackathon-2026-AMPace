@@ -30,8 +30,8 @@ interface BehaviorState {
   lastNudgeAt: number;
 }
 
-const KEY = "ampulse:behavior";
-const EVENT = "ampulse:behavior";
+const KEY = "ampace:behavior";
+const EVENT = "ampace:behavior";
 
 const empty = (): BehaviorState => ({ datasets: {}, dismissed: {}, lastNudgeAt: 0 });
 

@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ForecastResult } from "./types";
 
-const DIR = path.join(os.tmpdir(), "ampulse-forecast-store-test");
+const DIR = path.join(os.tmpdir(), "ampace-forecast-store-test");
 process.env.FORECAST_DATA_DIR = DIR;
 
 // import AFTER setting env so the module (which reads env lazily) uses our dir

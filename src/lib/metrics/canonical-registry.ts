@@ -1,5 +1,5 @@
 /**
- * The single authoritative registry for AMPulse's canonical ad metrics. It is
+ * The single authoritative registry for AMPace's canonical ad metrics. It is
  * the source of truth for metric identity, aggregation semantics (additive vs
  * ratio-of-sums), the Databricks column name, and display formatting.
  *

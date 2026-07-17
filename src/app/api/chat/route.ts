@@ -19,7 +19,7 @@ const ChatRequestSchema = z.object({
 });
 
 const SYSTEM_PROMPT = [
-  "You are the AMPulse analytics assistant, embedded in the sidebar of a live advertising-analytics dashboard.",
+  "You are the AMPace analytics assistant, embedded in the sidebar of a live advertising-analytics dashboard.",
   "",
   "What you can see: a snapshot of every account (company) currently in the workspace — total adspend, clicks, " +
     "CPC, revenue, conversions, ROAS, and CVR; each account's performance goal if one has been set (ROAS or CPA) " +

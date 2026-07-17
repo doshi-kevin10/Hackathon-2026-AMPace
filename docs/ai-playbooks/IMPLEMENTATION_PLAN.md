@@ -1,4 +1,4 @@
-# AMPulse AI Playbooks — Implementation Plan
+# AMPace AI Playbooks — Implementation Plan
 
 > Source of truth is the checked-out code, not this doc. Verified against the repo on 2026-07-16.
 
@@ -6,7 +6,7 @@
 
 - **Framework**: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5, Tailwind 4, Zod 4.4.3.
 - **Anthropic SDK**: `@anthropic-ai/sdk@0.111.0`. Structured output via `messages.parse({ output_config: { format: zodOutputFormat(schema) } })` → `message.parsed_output` (helper: `@anthropic-ai/sdk/helpers/zod`, uses `zod/v4` which is the same package). Existing chat route uses `messages.create` with `output_config: { effort }` and model `claude-opus-4-8`.
-- **Auth**: JWT session cookie (`ampulse_session`) via `jose`. `getSessionUser()` / `requireUser()` in `src/lib/auth/server.ts`. Roles: `SUPER_ADMIN | ADMIN | ANALYST | VIEWER` (`src/lib/auth/config.ts`, dev users only). `src/middleware.ts` guards everything except `/login` + auth routes.
+- **Auth**: JWT session cookie (`ampace_session`) via `jose`. `getSessionUser()` / `requireUser()` in `src/lib/auth/server.ts`. Roles: `SUPER_ADMIN | ADMIN | ANALYST | VIEWER` (`src/lib/auth/config.ts`, dev users only). `src/middleware.ts` guards everything except `/login` + auth routes.
 - **Databricks**: REST Statement Execution client (`src/lib/databricks/client.ts`, server-only, token from env, `databricksConfigured()`). Analytics layer (`src/lib/databricks/analytics.ts`) allowlists tables by `excel_company_` prefix + `^[a-z0-9_]+$`, `isValidDatasetName()`, `listDatasets()`, `getDatasetRows()`. Canonical 9-col schema in `sync.ts` `DB_COLUMNS` (Date, Day, Total_Adspend, Clicks, CPC, Revenue, Conversions, ROAS, CVR). **Reads only** for this feature; writes exist only in sync.ts (not used by playbooks).
 - **Formula engine**: `src/lib/excel/formula.ts` — pure, eval-free tokenizer/parser/evaluator (`+ - * /`, parens, `[Bracketed]` refs). Wrapped by `src/lib/formula/calc-columns.ts` (`CalcColumnSpec {id,name,formula,format}`, `validateCalcColumn`, `applyCalcColumns`). **Reuse this — do not write a second evaluator.**
 - **Metrics**: `src/lib/analytics/kpi.ts` `computeKpiTotals` already does ratio-of-sums (CPC/ROAS/CVR/CPA from summed components). Extend into a canonical registry; keep behavior.

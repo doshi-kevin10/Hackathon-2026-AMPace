@@ -7,7 +7,7 @@ import { DatasetAccessError } from "@/lib/access/dataset-access-provider";
 import { syntheticSeries } from "@/lib/analytics/__fixtures__/series";
 import type { DailySeries } from "@/lib/databricks/history";
 
-const DIR = path.join(os.tmpdir(), "ampulse-routes-test");
+const DIR = path.join(os.tmpdir(), "ampace-routes-test");
 process.env.FORECAST_DATA_DIR = DIR;
 
 const requireUser = vi.fn();

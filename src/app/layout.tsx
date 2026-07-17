@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AMPulse — Live Advertising Analytics",
+  title: "AMPace — Live Advertising Analytics",
   description: "Permission-scoped, live advertising analytics backed by Databricks",
 };
 

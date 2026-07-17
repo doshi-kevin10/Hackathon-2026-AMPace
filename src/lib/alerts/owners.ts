@@ -15,17 +15,17 @@ export interface AlertOwner {
 
 /** dataset name → owner. Extend as datasets get real owners. */
 const OWNERS: Record<string, AlertOwner> = {
-  excel_company_nike: { name: "Ana Analyst", email: "analyst@ampulse.dev" },
-  excel_company_adidas: { name: "Ana Analyst", email: "analyst@ampulse.dev" },
-  excel_company_spotify: { name: "Super Admin", email: "superadmin@ampulse.dev" },
-  excel_company_airbnb: { name: "Val Viewer", email: "viewer@ampulse.dev" },
+  excel_company_nike: { name: "Ana Analyst", email: "analyst@ampace.dev" },
+  excel_company_adidas: { name: "Ana Analyst", email: "analyst@ampace.dev" },
+  excel_company_spotify: { name: "Super Admin", email: "superadmin@ampace.dev" },
+  excel_company_airbnb: { name: "Val Viewer", email: "viewer@ampace.dev" },
 };
 
 /** Parse `ALERTS_DEFAULT_OWNER` — either "Name" or "Name <email>". */
 function defaultOwner(): AlertOwner {
   const raw = process.env.ALERTS_DEFAULT_OWNER?.trim();
   const slackId = process.env.ALERTS_DEFAULT_OWNER_SLACK_ID?.trim() || undefined;
-  if (!raw) return { name: "AMPulse Team", slackId };
+  if (!raw) return { name: "AMPace Team", slackId };
   const m = raw.match(/^(.*?)\s*<([^>]+)>\s*$/);
   return m ? { name: m[1].trim(), email: m[2].trim(), slackId } : { name: raw, slackId };
 }

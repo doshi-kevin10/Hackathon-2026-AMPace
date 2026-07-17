@@ -3,7 +3,7 @@ import { DEV_USERS, toSessionUser, type SessionUser } from "./config";
 
 // Node-only (uses node:crypto). Never import this from middleware/edge code.
 
-const DEV_SALT = "ampulse-dev-salt";
+const DEV_SALT = "ampace-dev-salt";
 
 /** Constant-time password check against the dev user list. */
 export function verifyCredentials(email: string, password: string): SessionUser | null {

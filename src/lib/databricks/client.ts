@@ -18,7 +18,7 @@ export class DatabricksError extends Error {
 // Mock mode is a valid data source, so it counts as "configured" — otherwise the
 // dataset routes 503 before their own mock fallback runs. Inlined (not imported from
 // mock-data) to avoid a client↔analytics↔mock-data import cycle.
-export const databricksConfigured = (): boolean => process.env.AMPULSE_MOCK !== "0" || Boolean(HOST && TOKEN);
+export const databricksConfigured = (): boolean => process.env.AMPACE_MOCK !== "0" || Boolean(HOST && TOKEN);
 
 interface StatementResult {
   columns: string[];

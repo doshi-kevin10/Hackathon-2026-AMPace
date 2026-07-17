@@ -2,7 +2,7 @@
 
 > Upgrade the company analytics experience into a decision-support workspace, then add
 > reliable deterministic historical analysis and forecasting for advertising metrics.
-> Built **additively** inside the existing AMPulse Next.js app. Does **not** rewrite the app.
+> Built **additively** inside the existing AMPace Next.js app. Does **not** rewrite the app.
 
 ## 0. Guiding constraints (non-negotiable)
 

@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { syntheticSeries } from "@/lib/analytics/__fixtures__/series";
 import type { DailySeries } from "@/lib/databricks/history";
 
-const DIR = path.join(os.tmpdir(), "ampulse-forecast-service-test");
+const DIR = path.join(os.tmpdir(), "ampace-forecast-service-test");
 process.env.FORECAST_DATA_DIR = DIR;
 
 const getDailySeries = vi.fn<(name: string) => Promise<DailySeries>>();

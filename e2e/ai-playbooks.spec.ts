@@ -23,7 +23,7 @@ const analysisState = {
 };
 
 async function login(request: APIRequestContext, email: string) {
-  const res = await request.post("/api/auth/login", { data: { email, password: "ampulse" } });
+  const res = await request.post("/api/auth/login", { data: { email, password: "ampace" } });
   expect(res.ok()).toBeTruthy();
 }
 
@@ -63,7 +63,7 @@ test("unauthenticated users are redirected away from Playbooks and Opportunities
 });
 
 test("a viewer cannot create a playbook", async ({ request }) => {
-  await login(request, "viewer@ampulse.dev");
+  await login(request, "viewer@ampace.dev");
   const res = await request.post("/api/playbooks/compile", {
     data: {
       datasetId: "excel_company_overstock",
@@ -80,7 +80,7 @@ test("a viewer cannot create a playbook", async ({ request }) => {
 });
 
 test("analyst: compile → activate → run → inbox → detail → acted on → outcome not ready → investigation", async ({ page, context }) => {
-  await login(context.request, "analyst@ampulse.dev");
+  await login(context.request, "analyst@ampace.dev");
   await seedRun(context.request);
 
   // Opportunity Inbox shows the ranked, deterministic result.

@@ -2,7 +2,7 @@
 
 > Single source of truth for handoff between sessions. Update after every major phase.
 
-## ⚑ PIVOT (owner-directed): AMPulse = AI automation agent
+## ⚑ PIVOT (owner-directed): AMPace = AI automation agent
 
 The product was refocused to an **AI automation** theme. Changes on top of the analytics/
 forecasting engine below (which is intact and reused):
@@ -13,7 +13,7 @@ forecasting engine below (which is intact and reused):
   api/playbook-runs,api/internal,api/ai}`, `src/components/{playbooks,opportunities}`,
   `dataset-view.tsx`, `components/analytics/*`). Shared infra kept: `metrics/*`,
   `access/dataset-access-provider.ts`, `auth`, `databricks`.
-- **Mock data mode** (`src/lib/databricks/mock-data.ts`, ON by default; `AMPULSE_MOCK=0` for
+- **Mock data mode** (`src/lib/databricks/mock-data.ts`, ON by default; `AMPACE_MOCK=0` for
   live): 4 story-driven demo companies (Nike healthy, Adidas CPC-blowout, Spotify anomaly,
   Airbnb whale). Wired into `listDatasets`/`getDatasetRows`/`getDailySeries`.
 - **Notification watchtower** (`src/lib/notifications/watchtower.ts` + `service.ts` +
@@ -21,8 +21,8 @@ forecasting engine below (which is intact and reused):
   (critical/warning/positive) + info-level anomalies. Topbar bell (`notifications-bell.tsx`).
 - **Agentic assistant** (`src/lib/agent/agent.ts` + `POST /api/agent` + `agent-panel.tsx`):
   Anthropic tool-use loop (tools over the deterministic engine) with a deterministic mock
-  fallback; strips markdown; returns `navigate` actions to drive the UI. "Ask AMPulse" in topbar.
-- **Clean shell**: topbar = logo · Ask AMPulse · 🔔 · sign out (no playbooks nav). Company page =
+  fallback; strips markdown; returns `navigate` actions to drive the UI. "Ask AMPace" in topbar.
+- **Clean shell**: topbar = logo · Ask AMPace · 🔔 · sign out (no playbooks nav). Company page =
   `CompanyView` with a **Data | Analytics** toggle only. Analytics trimmed: KPIs + AI summary +
   charts + forecast, with drivers/anomalies/stats/correlation in a collapsed "Deep dive".
 - **AI output fixed**: no more markdown `**stars**`; agent prompt forbids markdown + `stripMarkdown` safety net.

@@ -66,7 +66,7 @@ export function DashboardCanvas({ name }: { name: string }) {
     if (!data) return null;
     let local: LocalEdits = emptyEdits();
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(`ampulse:datatab:${name}`) : null;
+      const raw = typeof window !== "undefined" ? localStorage.getItem(`ampace:datatab:${name}`) : null;
       if (raw) local = JSON.parse(raw) as LocalEdits;
     } catch {
       /* malformed edits — fall back to live data */

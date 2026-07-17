@@ -4,7 +4,7 @@ import { USER_ROLES, type SessionUser } from "./config";
 // Edge-safe: this module is imported by middleware, so it must NOT pull in
 // node:crypto. Password verification lives in ./credentials (node-only).
 
-export const SESSION_COOKIE = "ampulse_session";
+export const SESSION_COOKIE = "ampace_session";
 const MAX_AGE_SEC = 8 * 60 * 60; // 8h
 
 if (!process.env.AUTH_SECRET && process.env.NODE_ENV !== "production") {
@@ -20,7 +20,7 @@ function secretKey(): Uint8Array {
   const raw = process.env.AUTH_SECRET;
   if (!raw) {
     if (process.env.NODE_ENV === "production") throw new Error("AUTH_SECRET must be set in production");
-    return new TextEncoder().encode("ampulse-dev-insecure-secret-change-me");
+    return new TextEncoder().encode("ampace-dev-insecure-secret-change-me");
   }
   return new TextEncoder().encode(raw);
 }

@@ -4,21 +4,21 @@ import { createSessionToken, verifySessionToken } from "./session";
 import { verifyCredentials } from "./credentials";
 
 // Tests run with no AUTH_SECRET, so session.ts uses this dev fallback.
-const DEV_SECRET = new TextEncoder().encode("ampulse-dev-insecure-secret-change-me");
+const DEV_SECRET = new TextEncoder().encode("ampace-dev-insecure-secret-change-me");
 
 describe("dev credentials", () => {
   it("accepts a seeded user with the correct password", () => {
-    const user = verifyCredentials("analyst@ampulse.dev", "ampulse");
-    expect(user).toMatchObject({ email: "analyst@ampulse.dev", role: "ANALYST" });
+    const user = verifyCredentials("analyst@ampace.dev", "ampace");
+    expect(user).toMatchObject({ email: "analyst@ampace.dev", role: "ANALYST" });
   });
 
   it("is case-insensitive on email and trims it", () => {
-    expect(verifyCredentials("  ANALYST@AMPulse.dev ", "ampulse")).not.toBeNull();
+    expect(verifyCredentials("  ANALYST@AMPace.dev ", "ampace")).not.toBeNull();
   });
 
   it("rejects wrong password and unknown user", () => {
-    expect(verifyCredentials("analyst@ampulse.dev", "nope")).toBeNull();
-    expect(verifyCredentials("ghost@ampulse.dev", "ampulse")).toBeNull();
+    expect(verifyCredentials("analyst@ampace.dev", "nope")).toBeNull();
+    expect(verifyCredentials("ghost@ampace.dev", "ampace")).toBeNull();
   });
 });
 

@@ -10,7 +10,7 @@ const BodySchema = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(4000) })).min(1).max(30),
 });
 
-/** The AMPulse agent — grounded in the deterministic engine; can drive the UI. */
+/** The AMPace agent — grounded in the deterministic engine; can drive the UI. */
 export async function POST(req: Request) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

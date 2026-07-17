@@ -1,5 +1,5 @@
 /**
- * AMPulse agent — an AI automation agent for ad managers. It answers with REAL
+ * AMPace agent — an AI automation agent for ad managers. It answers with REAL
  * numbers by calling deterministic tools over the analytics/forecast engine, and
  * it can drive the UI (navigate/open a company). It never invents numbers and
  * emits clean plain text (no markdown). A deterministic mock keeps the demo
@@ -181,7 +181,7 @@ const TOOLS = [
 ];
 
 const SYSTEM = [
-  "You are AMPulse, an AI automation agent for advertising managers.",
+  "You are AMPace, an AI automation agent for advertising managers.",
   "Answer using ONLY numbers returned by the tools. Never invent or estimate a number yourself.",
   "Always call a tool when a question needs data. Company ids look like 'excel_company_nike'.",
   "Whenever your answer focuses on one company, ALWAYS call navigate with href '/datasets/<company>/analytics' so the user can open it.",
@@ -201,7 +201,7 @@ async function runTool(name: string, input: any): Promise<unknown> {
 async function runAnthropic(messages: AgentMessage[]): Promise<AgentReply> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const model = process.env.AMPULSE_AGENT_MODEL ?? "claude-sonnet-5";
+  const model = process.env.AMPACE_AGENT_MODEL ?? "claude-sonnet-5";
   const actions: AgentAction[] = [];
   const convo: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
 

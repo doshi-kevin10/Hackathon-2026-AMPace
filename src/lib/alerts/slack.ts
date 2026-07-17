@@ -1,6 +1,6 @@
 /**
  * Slack alerting — one small structured model (`SlackAlert`) rendered into
- * Block Kit so every alert AMPulse sends (anomalies, week-over-week moves,
+ * Block Kit so every alert AMPace sends (anomalies, week-over-week moves,
  * data-quality issues, low-confidence forecasts) looks like one system:
  * a severity-colored bar, a header with a severity emoji, a details section,
  * a context line, and deep-link buttons back into the app.
@@ -101,7 +101,7 @@ export function buildSlackMessage(alert: SlackAlert): Record<string, unknown> {
   const primary = absoluteUrl(alert.href);
   const buttons: Record<string, unknown>[] = [];
   if (primary)
-    buttons.push({ type: "button", text: { type: "plain_text", text: "View in AMPulse", emoji: true }, url: primary, style: "primary" });
+    buttons.push({ type: "button", text: { type: "plain_text", text: "View in AMPace", emoji: true }, url: primary, style: "primary" });
   if (alert.sourceUrl)
     buttons.push({ type: "button", text: { type: "plain_text", text: alert.sourceLabel ?? "Read the news", emoji: true }, url: alert.sourceUrl });
   if (buttons.length) {
@@ -110,7 +110,7 @@ export function buildSlackMessage(alert: SlackAlert): Record<string, unknown> {
   }
 
   // 5. Provenance footer.
-  const footnote = ["📡 AMPulse", alert.context, alert.date].filter(Boolean).join("  ·  ");
+  const footnote = ["📡 AMPace", alert.context, alert.date].filter(Boolean).join("  ·  ");
   blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: footnote }] });
 
   return {

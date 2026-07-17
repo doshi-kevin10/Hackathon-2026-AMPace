@@ -19,7 +19,7 @@ export async function POST() {
 
   await sendSlackAlert({
     severity: "positive",
-    title: "AMPulse alerts are live 🎉",
+    title: "AMPace alerts are live 🎉",
     detail:
       "This is a test alert. You'll see anomalies (news-explained), week-over-week moves, data-quality issues, and low-confidence forecasts here.",
     metric: "Test",

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-process.env.AMPULSE_MOCK = "0"; // exercise the real SQL path, not the demo mock
+process.env.AMPACE_MOCK = "0"; // exercise the real SQL path, not the demo mock
 
 const executeStatement = vi.fn();
 vi.mock("./client", () => ({

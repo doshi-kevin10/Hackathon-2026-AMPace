@@ -1,4 +1,4 @@
-# AMPulse — Progress Summary (as of 2026-07-16)
+# AMPace — Progress Summary (as of 2026-07-16)
 
 **Repo:** https://github.com/doshi-kevin10/Hackathon-2026-AMPace · **App:** `excel-parser/` (Next.js 16, TypeScript)
 

@@ -27,9 +27,9 @@ export function CompanyView({ name, initialTab = "data" }: { name: string; initi
       if (buildTimer.current) clearTimeout(buildTimer.current);
       buildTimer.current = setTimeout(() => setBuilding(false), 3000);
     };
-    window.addEventListener("ampulse:show-analytics", onShow);
+    window.addEventListener("ampace:show-analytics", onShow);
     return () => {
-      window.removeEventListener("ampulse:show-analytics", onShow);
+      window.removeEventListener("ampace:show-analytics", onShow);
       if (buildTimer.current) clearTimeout(buildTimer.current);
     };
   }, [name]);

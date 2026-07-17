@@ -31,9 +31,9 @@ export interface ActivityEntry {
   at: string;
 }
 
-const KEY = "ampulse:activity";
-const SEEN_KEY = "ampulse:activity-seen";
-const EVENT = "ampulse:activity";
+const KEY = "ampace:activity";
+const SEEN_KEY = "ampace:activity-seen";
+const EVENT = "ampace:activity";
 const CAP = 100;
 
 export const getActivity = (): ActivityEntry[] => {

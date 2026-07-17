@@ -16,7 +16,7 @@ export interface CustomTable {
   local: LocalEdits;
 }
 
-const storeKey = (name: string) => `ampulse:customtables:${name}`;
+const storeKey = (name: string) => `ampace:customtables:${name}`;
 
 const load = (name: string): CustomTable[] => {
   if (typeof window === "undefined") return [];

@@ -10,7 +10,7 @@ import { buildSuggestions, type Suggestion, type SuggestionTone } from "@/lib/ad
 import type { Dataset } from "@/lib/databricks/analytics";
 import { cn } from "@/lib/utils";
 
-const dismissKey = (day: string) => `ampulse:briefing-dismissed:${day}`;
+const dismissKey = (day: string) => `ampace:briefing-dismissed:${day}`;
 const greetingFor = (h: number) => (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
 
 const TONE_DOT: Record<SuggestionTone, string> = {
@@ -93,7 +93,7 @@ export function DailyBriefing({ userName }: { userName: string }) {
         {top.length === 0 ? (
           <div className="mt-6 flex items-start gap-3 text-[15px] leading-snug text-muted-foreground">
             <CheckCircle2 className="mt-0.5 size-[18px] shrink-0 text-emerald-600" aria-hidden />
-            <span>You&rsquo;re all caught up. Open a company and AMPulse will flag anything worth a second look as you work.</span>
+            <span>You&rsquo;re all caught up. Open a company and AMPace will flag anything worth a second look as you work.</span>
           </div>
         ) : (
           <>

@@ -1,4 +1,4 @@
-# AMPulse Refactor Plan — Excel Parser → Databricks Analytics Workspace
+# AMPace Refactor Plan — Excel Parser → Databricks Analytics Workspace
 
 **Status:** building (descoped — see §0)
 **Goal:** Pivot from "Excel is the source of truth" to "Databricks is the source of truth," behind a login-gated live analytics view.

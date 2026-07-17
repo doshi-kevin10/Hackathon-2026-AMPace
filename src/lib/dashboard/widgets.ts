@@ -109,8 +109,8 @@ export function routePrompt(prompt: string): WidgetSpec[] {
 
 // ---------- per-company store ----------
 
-const key = (name: string) => `ampulse:dashboard:${name}`;
-const EVENT = "ampulse:dashboard";
+const key = (name: string) => `ampace:dashboard:${name}`;
+const EVENT = "ampace:dashboard";
 
 export const getDashboard = (name: string): WidgetSpec[] => {
   if (typeof window === "undefined") return [];
@@ -154,7 +154,7 @@ const defaultWidgets = (): WidgetSpec[] => [
  */
 export const ensureDefaultWidgets = (name: string): void => {
   if (typeof window === "undefined") return;
-  const seededKey = `ampulse:dashboard-seeded-v2:${name}`;
+  const seededKey = `ampace:dashboard-seeded-v2:${name}`;
   if (localStorage.getItem(seededKey)) return;
   localStorage.setItem(seededKey, "1");
   const defaults = defaultWidgets();

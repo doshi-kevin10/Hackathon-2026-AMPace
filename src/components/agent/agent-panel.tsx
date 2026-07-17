@@ -17,7 +17,7 @@ interface Msg extends AgentMessage {
   actions?: AgentAction[];
 }
 
-/** The AMPulse agent: ask anything; it answers with real numbers and can open pages for you. */
+/** The AMPace agent: ask anything; it answers with real numbers and can open pages for you. */
 export function AgentPanel() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -52,7 +52,7 @@ export function AgentPanel() {
   return (
     <>
       <Button variant="default" size="sm" onClick={() => setOpen(true)} className="gap-1.5">
-        <Compass className="size-4" /> Ask AMPulse
+        <Compass className="size-4" /> Ask AMPace
       </Button>
 
       {open && (
@@ -60,7 +60,7 @@ export function AgentPanel() {
           <aside className="flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <header className="flex items-center gap-2 border-b px-4 py-3">
               <Compass className="size-4 text-primary" />
-              <span className="font-semibold">AMPulse agent</span>
+              <span className="font-semibold">AMPace agent</span>
               <span className="text-xs text-muted-foreground">grounded in your real metrics</span>
               <button type="button" onClick={() => setOpen(false)} className="ml-auto rounded-md p-1 hover:bg-muted" aria-label="Close">
                 <X className="size-4" />

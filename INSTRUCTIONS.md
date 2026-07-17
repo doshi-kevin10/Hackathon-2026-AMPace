@@ -1,7 +1,7 @@
 # Excel Table Studio - Instructions
 
 ## Overview
-Phase-1 MVP of the AMPulse AI-automation project: upload Excel workbooks, auto-detect
+Phase-1 MVP of the AMPace AI-automation project: upload Excel workbooks, auto-detect
 tables per sheet, review/correct them in a Next.js UI, export normalized JSON.
 Full architecture, parser pipeline, API reference, configuration, security model, and
 limitations live in [README.md](README.md) — that file is the canonical reference.

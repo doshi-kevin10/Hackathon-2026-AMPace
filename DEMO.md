@@ -1,6 +1,6 @@
-# AMPulse — Demo Walkthrough
+# AMPace — Demo Walkthrough
 
-**AMPulse is an AI automation agent for advertising managers.** It watches every ad
+**AMPace is an AI automation agent for advertising managers.** It watches every ad
 account, tells you what needs attention (and why), forecasts what's next, and can act on
 your behalf — every number is computed deterministically; the AI only explains and drives.
 
@@ -14,12 +14,12 @@ npm run build && npm run start     # → http://localhost:3000
 ```
 
 - **Mock data is ON by default** — 4 demo companies (Nike, Adidas, Spotify, Airbnb) with
-  built-in stories, so the demo never depends on the network. Set `AMPULSE_MOCK=0` in
+  built-in stories, so the demo never depends on the network. Set `AMPACE_MOCK=0` in
   `.env.local` to use live Databricks instead.
 - **AI**: works out of the box. With `AI_MODE=anthropic` + `ANTHROPIC_API_KEY`, the agent
   uses Claude with live tool-calling. With no key (`AI_MODE` unset), a deterministic mock
   agent gives the same demo. Either way, numbers come from the engine, never the model.
-- Login is pre-filled: `analyst@ampulse.dev` / `ampulse` → click **Sign in**.
+- Login is pre-filled: `analyst@ampace.dev` / `ampace` → click **Sign in**.
 
 ## The 90-second walkthrough
 
@@ -30,7 +30,7 @@ npm run build && npm run start     # → http://localhost:3000
    These are 100% deterministic (ratio-of-sums, robust z-scores) — accurate, not hallucinated.
    Click **Adidas** → it jumps straight to Adidas's analytics.
 
-2. **Ask AMPulse (top-right ✨).** Open the agent and try:
+2. **Ask AMPace (top-right ✨).** Open the agent and try:
    - *"What needs my attention today?"* → prioritized rundown, worst first, with real numbers,
      and an **Open Adidas →** button that navigates you there.
    - *"Forecast Adidas revenue for the next 14 days."* → "$46,004 (range $44.8k–$47.2k), high

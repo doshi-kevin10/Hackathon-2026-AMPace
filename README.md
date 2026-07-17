@@ -1,4 +1,4 @@
-# AMPulse — Live Advertising Analytics
+# AMPace — Live Advertising Analytics
 
 A login-gated analytics workspace where **Databricks is the source of truth**. Users sign in,
 browse the advertising datasets in the workspace, and analyze live daily metrics — sort, search,
@@ -23,8 +23,8 @@ export AUTH_SECRET="$(openssl rand -hex 32)"
 npm run dev            # http://localhost:3000  → redirects to /login
 ```
 
-**Demo logins** (dev-only, password `ampulse`): `superadmin@ampulse.dev`, `analyst@ampulse.dev`,
-`viewer@ampulse.dev`.
+**Demo logins** (dev-only, password `ampace`): `superadmin@ampace.dev`, `analyst@ampace.dev`,
+`viewer@ampace.dev`.
 
 ## Commands
 
@@ -121,9 +121,9 @@ default 1000).
   assignment CRUD, saved views, calculated-column UI, Excel export. The formula engine and the
   Excel parsing lib remain on disk (unlinked) for those follow-ups.
 
-## AMPulse AI Playbooks
+## AMPace AI Playbooks
 
-Teach AMPulse an analysis once. It compiles that analysis into a governed **playbook**, runs it
+Teach AMPace an analysis once. It compiles that analysis into a governed **playbook**, runs it
 across every company you can access, ranks the resulting **opportunities**, opens a ready-made
 investigation, and records whether the eventual decision was followed by a better outcome.
 

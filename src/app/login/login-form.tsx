@@ -10,8 +10,8 @@ import { safeNext } from "@/lib/safe-redirect";
 
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
-  const [email, setEmail] = useState("analyst@ampulse.dev");
-  const [password, setPassword] = useState("ampulse");
+  const [email, setEmail] = useState("analyst@ampace.dev");
+  const [password, setPassword] = useState("ampace");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -61,7 +61,7 @@ export function LoginForm({ next }: { next?: string }) {
           </Button>
         </form>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Demo: analyst@ampulse.dev / superadmin@ampulse.dev / viewer@ampulse.dev — password <code>ampulse</code>
+          Demo: analyst@ampace.dev / superadmin@ampace.dev / viewer@ampace.dev — password <code>ampace</code>
         </p>
       </CardContent>
     </Card>

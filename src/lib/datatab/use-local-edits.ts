@@ -6,7 +6,7 @@ import { calcColumnId, type CalcFormat } from "@/lib/formula/calc-columns";
 import type { ParsedColumn } from "@/lib/schemas/workbook";
 import { blankRow, editedCell, editKey, emptyEdits, withNote, type LocalEdits } from "./derive";
 
-const storeKey = (name: string) => `ampulse:datatab:${name}`;
+const storeKey = (name: string) => `ampace:datatab:${name}`;
 
 const load = (name: string): LocalEdits => {
   if (typeof window === "undefined") return emptyEdits();

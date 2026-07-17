@@ -9,7 +9,7 @@ import { logActivity } from "./log";
  * show up in the notifications bar. The baseline is seeded silently on first
  * sight so a fresh session doesn't dump one entry per company.
  */
-const KEY = "ampulse:db-rowcounts";
+const KEY = "ampace:db-rowcounts";
 
 const read = (): Record<string, number> => {
   if (typeof window === "undefined") return {};

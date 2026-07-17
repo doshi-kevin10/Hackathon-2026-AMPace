@@ -25,7 +25,7 @@ export function AmpaceChat() {
     // Build widgets deterministically and drop them on the dashboard (instant, demo-safe).
     const specs = routePrompt(q);
     addWidgets(company, specs);
-    window.dispatchEvent(new CustomEvent("ampulse:show-analytics", { detail: company }));
+    window.dispatchEvent(new CustomEvent("ampace:show-analytics", { detail: company }));
     const titles = specs.map((s) => s.title);
 
     // Ask Claude for a natural confirmation (falls back instantly if unavailable).
@@ -51,7 +51,7 @@ export function AmpaceChat() {
       busyLabel="Building…"
       suggestions={SUGGESTIONS}
       intro={INTRO}
-      openEvent="ampulse:open-advisor"
+      openEvent="ampace:open-advisor"
       onSubmit={onSubmit}
     />
   );

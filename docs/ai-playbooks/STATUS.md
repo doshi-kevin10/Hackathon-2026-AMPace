@@ -1,4 +1,4 @@
-# AMPulse AI Playbooks Status
+# AMPace AI Playbooks Status
 
 Current branch: main
 Current commit: 5bffee8 (Merge remote-tracking branch 'origin/main')

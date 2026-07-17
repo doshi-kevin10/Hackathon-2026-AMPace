@@ -4,7 +4,7 @@
  * blowout / anomaly spike / steady whale) engineered so the analytics, forecast,
  * and notification features all have something compelling to show.
  *
- * Enabled by default; set AMPULSE_MOCK=0 to use live Databricks instead.
+ * Enabled by default; set AMPACE_MOCK=0 to use live Databricks instead.
  */
 import type { CellValue, ParsedColumn } from "@/lib/schemas/workbook";
 import type { DailyPoint } from "@/lib/analytics/series";
@@ -13,7 +13,7 @@ import type { DailySeries } from "./history";
 import type { LiveTable } from "./sync";
 import { DB_COLUMNS } from "./sync";
 
-export const isMockEnabled = (): boolean => process.env.AMPULSE_MOCK !== "0";
+export const isMockEnabled = (): boolean => process.env.AMPACE_MOCK !== "0";
 
 const MS_DAY = 86_400_000;
 const DAYS = 180;
