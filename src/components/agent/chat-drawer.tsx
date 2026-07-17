@@ -12,7 +12,7 @@ export interface ChatMsg {
   chips?: string[];
 }
 
-const prettify = (slug: string) =>
+export const prettify = (slug: string) =>
   slug
     .replace(/^excel_company_/, "")
     .split("_")

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { AmpaceChat } from "@/components/agent/ampace-chat";
 import { SlackBot } from "@/components/agent/slack-bot";
-import { NotificationsBell } from "@/components/notifications/notifications-bell";
+import { NewsDrawer } from "@/components/news/news-drawer";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth/config";
 
@@ -29,8 +29,8 @@ export function AppHeader({ user }: { user: SessionUser }) {
         <div className="ml-auto flex items-center gap-3">
           <AmpaceChat />
           <SlackBot />
+          <NewsDrawer />
           <ActivityFeed />
-          <NotificationsBell />
           <span className="hidden text-sm text-muted-foreground md:inline">{user.name}</span>
           <Button variant="outline" size="sm" onClick={() => void logout()}>
             Sign out
