@@ -9,7 +9,7 @@
  * window event so the chatbot and the canvas stay in sync.
  */
 
-export type WidgetType = "kpi" | "line" | "barDow" | "compare" | "alerts" | "table";
+export type WidgetType = "kpi" | "line" | "barDow" | "compare" | "alerts" | "table" | "momentum";
 
 export interface WidgetSpec {
   id: string;
@@ -126,6 +126,22 @@ export const removeWidget = (name: string, widgetId: string): void => {
 };
 
 export const clearDashboard = (name: string): void => write(name, []);
+
+/**
+ * Seed the always-on period-comparison widget once per company, so every
+ * dashboard starts with it. Idempotent and removable — a per-company flag means
+ * it won't reappear after the user deletes it.
+ */
+export const ensureDefaultWidgets = (name: string): void => {
+  if (typeof window === "undefined") return;
+  const seededKey = `ampulse:dashboard-seeded:${name}`;
+  if (localStorage.getItem(seededKey)) return;
+  localStorage.setItem(seededKey, "1");
+  const existing = getDashboard(name);
+  if (!existing.some((w) => w.type === "momentum")) {
+    write(name, [{ id: id(), type: "momentum", title: "Momentum — vs yesterday · week · month", span: 2 }, ...existing]);
+  }
+};
 
 export const subscribeDashboard = (cb: () => void): (() => void) => {
   window.addEventListener(EVENT, cb);

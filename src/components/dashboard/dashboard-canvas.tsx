@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, Trash2 } from "lucide-react";
 import { WidgetCard, type CompanyStat } from "@/components/dashboard/widget-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { deriveTable, emptyEdits, type LocalEdits } from "@/lib/datatab/derive";
 import type { Table } from "@/lib/dashboard/compute";
-import { clearDashboard, getDashboard, removeWidget, subscribeDashboard, type WidgetSpec } from "@/lib/dashboard/widgets";
+import { clearDashboard, ensureDefaultWidgets, getDashboard, removeWidget, subscribeDashboard, type WidgetSpec } from "@/lib/dashboard/widgets";
 
 interface LiveData extends Table {
   label: string;
@@ -36,8 +37,9 @@ export function DashboardCanvas({ name }: { name: string }) {
     return () => c.abort();
   }, [name]);
 
-  // Dashboard specs (local, per company) — read + live-update.
+  // Dashboard specs (local, per company) — seed the always-on comparison, then read + live-update.
   useEffect(() => {
+    ensureDefaultWidgets(name);
     const refresh = () => setSpecs(getDashboard(name));
     refresh();
     return subscribeDashboard(refresh);
@@ -57,7 +59,21 @@ export function DashboardCanvas({ name }: { name: string }) {
     };
   }, [needsCompanies, companies.length]);
 
-  const table = useMemo<Table | null>(() => (data ? { columns: data.columns, rows: data.rows } : null), [data]);
+  // Include the user's local Data-tab edits (added/edited rows, calc columns) so
+  // analytics reflects data as soon as it's entered — the Data tab is read on mount
+  // (the tabs are never visible at once, so a fresh read on switch is enough).
+  const table = useMemo<Table | null>(() => {
+    if (!data) return null;
+    let local: LocalEdits = emptyEdits();
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(`ampulse:datatab:${name}`) : null;
+      if (raw) local = JSON.parse(raw) as LocalEdits;
+    } catch {
+      /* malformed edits — fall back to live data */
+    }
+    const d = deriveTable({ columns: data.columns, rows: data.rows }, local);
+    return { columns: d.columns, rows: d.rows };
+  }, [data, name]);
 
   if (error)
     return <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">{error}</div>;

@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { BarChart } from "@/components/charts/bar-chart";
 import { compactNumber } from "@/components/charts/format";
 import { LineChart } from "@/components/charts/line-chart";
+import { MomentumWidget } from "@/components/dashboard/momentum-widget";
 import { computeKpiTotals } from "@/lib/analytics/kpi";
 import { byDayOfWeek, timeSeries, topRows, type Table } from "@/lib/dashboard/compute";
 import { colorForMetric, type WidgetSpec } from "@/lib/dashboard/widgets";
@@ -18,7 +19,7 @@ export interface CompanyStat {
 }
 
 /** Formatter appropriate to a canonical metric. */
-function fmtFor(metric?: string): (n: number) => string {
+export function fmtFor(metric?: string): (n: number) => string {
   if (metric === "ROAS") return (n) => `${n.toFixed(2)}×`;
   if (metric === "CVR") return (n) => `${(n * 100).toFixed(1)}%`;
   if (metric === "Revenue" || metric === "Total Adspend" || metric === "CPC" || metric === "CPA")
@@ -150,6 +151,8 @@ export function WidgetCard({
       }
       case "alerts":
         return <Alerts table={table} label={label} />;
+      case "momentum":
+        return <MomentumWidget table={table} />;
     }
   }, [spec, table, label, companies]);
 
