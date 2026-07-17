@@ -82,6 +82,16 @@ function chronological(t: Table): Row[] {
   );
 }
 
+/** The metric's daily values over the last n rows (chronological), for a sparkline. */
+export function metricDailySeries(t: Table, metric: string, n = 30): number[] {
+  const mId = colId(t, metric);
+  if (!mId) return [];
+  return chronological(t)
+    .slice(-n)
+    .map((r) => Number(r[mId]?.normalized))
+    .filter((v) => Number.isFinite(v));
+}
+
 export function momentum(t: Table, metric: string): Comparison[] {
   const field = FIELD_BY_NAME.get(metric);
   if (!field) return [];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { comparableMetrics, momentum } from "./momentum";
+import { comparableMetrics, metricDailySeries, momentum } from "./momentum";
 import type { Table } from "./compute";
 import type { CellValue, ParsedColumn } from "@/lib/schemas/workbook";
 
@@ -57,5 +57,13 @@ describe("momentum", () => {
 
   it("returns nothing for an unknown metric", () => {
     expect(momentum(table, "Nonexistent")).toEqual([]);
+  });
+});
+
+describe("metricDailySeries", () => {
+  it("returns the metric's daily values, chronological, capped at n", () => {
+    expect(metricDailySeries(table, "Revenue")).toEqual([100, 200, 300, 400]);
+    expect(metricDailySeries(table, "Revenue", 2)).toEqual([300, 400]);
+    expect(metricDailySeries(table, "Nonexistent")).toEqual([]);
   });
 });

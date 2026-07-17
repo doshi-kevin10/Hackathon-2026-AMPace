@@ -1,98 +1,96 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { Sparkline } from "@/components/charts/sparkline";
 import { fmtFor } from "@/components/dashboard/widget-card";
 import type { Table } from "@/lib/dashboard/compute";
-import { comparableMetrics, momentum, type Comparison } from "@/lib/dashboard/momentum";
-import { colorForMetric } from "@/lib/dashboard/widgets";
+import { comparableMetrics, metricDailySeries, momentum, type Comparison } from "@/lib/dashboard/momentum";
 import { cn } from "@/lib/utils";
 
-/** Two-bar previous→current mini chart. */
-function MiniBars({ previous, current, color }: { previous: number | null; current: number | null; color: string }) {
-  const max = Math.max(previous ?? 0, current ?? 0, 1);
-  const bar = (v: number | null, fill: string, title: string) => (
-    <div className="flex flex-1 flex-col items-center justify-end">
-      <div
-        className="w-full max-w-6 rounded-t"
-        style={{ height: `${((v ?? 0) / max) * 100}%`, backgroundColor: fill, minHeight: v ? 2 : 0 }}
-        title={title}
-      />
-    </div>
-  );
-  return (
-    <div className="flex h-10 items-end gap-1.5">
-      {bar(previous, "var(--muted-foreground)", "previous")}
-      {bar(current, color, "current")}
-    </div>
-  );
-}
+const UP = "var(--chart-2)"; // green
+const DOWN = "var(--chart-8)"; // red
 
-function Card({ c, metric }: { c: Comparison; metric: string }) {
-  const fmt = fmtFor(metric);
-  const up = c.pct != null && c.pct > 0;
-  const down = c.pct != null && c.pct < 0;
-  const Arrow = up ? ArrowUpRight : down ? ArrowDownRight : Minus;
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background p-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        {c.title} <span className="normal-case opacity-70">· {c.vs}</span>
-      </p>
-      <p className="text-2xl font-semibold tabular-nums tracking-tight">{c.current == null ? "—" : fmt(c.current)}</p>
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className={cn(
-            "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums",
-            up && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-            down && "bg-red-500/10 text-red-600 dark:text-red-400",
-            !up && !down && "bg-muted text-muted-foreground"
-          )}
-        >
-          <Arrow className="size-3" />
-          {c.pct == null ? "n/a" : `${c.pct >= 0 ? "+" : ""}${(c.pct * 100).toFixed(1)}%`}
-        </span>
-        <MiniBars previous={c.previous} current={c.current} color={colorForMetric(metric)} />
-      </div>
-      {c.previous != null && (
-        <p className="text-[11px] text-muted-foreground tabular-nums">prev {fmt(c.previous)}</p>
-      )}
-    </div>
-  );
-}
+const changeCls = (pct: number | null) =>
+  pct == null || pct === 0
+    ? "text-muted-foreground"
+    : pct > 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : "text-red-600 dark:text-red-400";
+const arrow = (pct: number | null) => (pct == null ? "" : pct > 0 ? "▲" : pct < 0 ? "▼" : "▬");
+const pctText = (pct: number | null) => (pct == null ? "—" : `${pct > 0 ? "+" : ""}${(pct * 100).toFixed(2)}%`);
 
-/** Always-on period comparison: pick a metric, see today / last 7d / last 30d vs their prior windows. */
+const TF_LABEL: Record<Comparison["key"], string> = { day: "1D", week: "7D", month: "30D" };
+
+/** Stock-ticker style period comparison: a live "quote", a trend sparkline, and a 1D/7D/30D strip. */
 export function MomentumWidget({ table }: { table: Table }) {
   const metrics = useMemo(() => comparableMetrics(table), [table]);
   const [picked, setPicked] = useState<string | null>(null);
   const metric = picked && metrics.includes(picked) ? picked : metrics.includes("Revenue") ? "Revenue" : metrics[0] ?? "";
+
   const comparisons = useMemo(() => (metric ? momentum(table, metric) : []), [table, metric]);
+  const series = useMemo(() => (metric ? metricDailySeries(table, metric, 30) : []), [table, metric]);
 
   if (!metrics.length) {
     return <p className="text-sm text-muted-foreground">No comparable metrics for this company.</p>;
   }
 
+  const fmt = fmtFor(metric);
+  const day = comparisons.find((c) => c.key === "day");
+  const delta = day?.delta ?? null;
+  const dayPct = day?.pct ?? null;
+  const trendUp = series.length >= 2 ? series[series.length - 1] >= series[0] : true;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-muted-foreground" htmlFor="momentum-metric">
-          Metric
-        </label>
-        <select
-          id="momentum-metric"
-          value={metric}
-          onChange={(e) => setPicked(e.target.value)}
-          className="h-8 rounded-md border border-border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-        >
-          {metrics.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
+      {/* quote header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <select
+              aria-label="Metric"
+              value={metric}
+              onChange={(e) => setPicked(e.target.value)}
+              className="-ml-1 rounded-md border-0 bg-transparent px-1 py-0.5 text-sm font-semibold tracking-tight outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40"
+            >
+              {metrics.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">daily</span>
+          </div>
+          <div className="mt-1 text-3xl font-semibold tabular-nums tracking-tight">{day?.current == null ? "—" : fmt(day.current)}</div>
+          <div className={cn("mt-0.5 flex items-center gap-1.5 text-sm font-medium tabular-nums", changeCls(dayPct))}>
+            <span aria-hidden>{arrow(dayPct)}</span>
+            <span>
+              {delta == null ? "—" : `${delta >= 0 ? "+" : "−"}${fmt(Math.abs(delta))}`} ({pctText(dayPct)})
+            </span>
+            <span className="font-normal text-muted-foreground">today vs yesterday</span>
+          </div>
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+
+      {/* trend sparkline */}
+      <div>
+        <Sparkline points={series} height={64} color={trendUp ? UP : DOWN} />
+        <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground">
+          <span>{series.length ? `${series.length}d ago` : ""}</span>
+          <span>{series.length ? "today" : "not enough history for a trend"}</span>
+        </div>
+      </div>
+
+      {/* 1D / 7D / 30D performance strip */}
+      <div className="grid grid-cols-3 divide-x divide-border border-t border-border pt-2">
         {comparisons.map((c) => (
-          <Card key={c.key} c={c} metric={metric} />
+          <div key={c.key} className="flex flex-col px-3 first:pl-0" title={`${c.title} ${c.vs}`}>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{TF_LABEL[c.key]}</span>
+            <span className={cn("mt-0.5 flex items-center gap-1 text-sm font-semibold tabular-nums", changeCls(c.pct))}>
+              <span aria-hidden className="text-[10px]">{arrow(c.pct)}</span>
+              {pctText(c.pct)}
+            </span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">{c.current == null ? "—" : fmt(c.current)}</span>
+          </div>
         ))}
       </div>
     </div>
