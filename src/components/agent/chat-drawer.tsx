@@ -124,6 +124,23 @@ export function ChatDrawer({
               {busy && <p className="text-sm text-muted-foreground">{busyLabel}</p>}
             </div>
 
+            {suggestions.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto border-t px-3 pt-2 pb-0.5" aria-label="Quick prompts">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => void send(s)}
+                    disabled={busy}
+                    title={s}
+                    className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <form
               className="flex items-center gap-2 border-t p-3"
               onSubmit={(e) => {

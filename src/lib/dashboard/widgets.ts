@@ -9,7 +9,7 @@
  * window event so the chatbot and the canvas stay in sync.
  */
 
-export type WidgetType = "kpi" | "line" | "barDow" | "compare" | "alerts" | "table" | "momentum";
+export type WidgetType = "kpi" | "line" | "barDow" | "compare" | "alerts" | "table" | "momentum" | "forecast";
 
 export interface WidgetSpec {
   id: string;
@@ -59,6 +59,11 @@ export function routePrompt(prompt: string): WidgetSpec[] {
   const metric = metricFromPrompt(p);
   const out: WidgetSpec[] = [];
 
+  // Forecast is opt-in: only when the user explicitly asks the chatbot to predict.
+  if (/forecast|predict|projection|\bproject\b|outlook|expected?|next (two|2) weeks?|next week|two weeks|fortnight|future|will .* (be|hit|reach)|trend into/.test(p)) {
+    const m = metric ?? "Revenue";
+    out.push({ id: id(), type: "forecast", title: `${m} forecast · next 2 weeks`, metric: m, span: 2 });
+  }
   if (/alert|anomal|attention|issue|problem|insight|flag|risk|warn|watch/.test(p)) {
     out.push({ id: id(), type: "alerts", title: "Signals & alerts", span: 2 });
   }

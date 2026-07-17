@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { BarChart } from "@/components/charts/bar-chart";
 import { compactNumber } from "@/components/charts/format";
 import { LineChart } from "@/components/charts/line-chart";
+import { ForecastWidget } from "@/components/dashboard/forecast-widget";
 import { MomentumWidget } from "@/components/dashboard/momentum-widget";
 import { computeKpiTotals } from "@/lib/analytics/kpi";
 import { byDayOfWeek, timeSeries, topRows, type Table } from "@/lib/dashboard/compute";
@@ -153,6 +154,8 @@ export function WidgetCard({
         return <Alerts table={table} label={label} />;
       case "momentum":
         return <MomentumWidget table={table} />;
+      case "forecast":
+        return <ForecastWidget table={table} metric={spec.metric} />;
     }
   }, [spec, table, label, companies]);
 

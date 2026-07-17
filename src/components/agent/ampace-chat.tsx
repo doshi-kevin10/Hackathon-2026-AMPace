@@ -5,6 +5,7 @@ import { ChatDrawer, useCompanyContext, type ChatMsg } from "@/components/agent/
 import { addWidgets, routePrompt } from "@/lib/dashboard/widgets";
 
 const SUGGESTIONS = [
+  "Forecast revenue for the next two weeks",
   "Show me revenue trends",
   "How does ROAS compare across companies?",
   "Break down revenue by day of week",
