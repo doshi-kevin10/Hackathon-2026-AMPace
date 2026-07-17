@@ -21,6 +21,7 @@ const ICON: Record<ActivityKind, string> = {
   "add-column": "ƒ",
   "delete-column": "✕",
   download: "↓",
+  "data-update": "⟳",
 };
 
 /** Topbar feed of local changes the user made to the data (rows, cells, columns) — nothing is written to Databricks. */

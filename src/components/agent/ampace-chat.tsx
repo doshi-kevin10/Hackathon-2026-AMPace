@@ -2,29 +2,25 @@
 
 import { Compass } from "lucide-react";
 import { ChatDrawer, useCompanyContext, type ChatMsg } from "@/components/agent/chat-drawer";
-import { coachingReply, isCoachingPrompt, personaIntro } from "@/lib/advisor/persona";
 import { addWidgets, routePrompt } from "@/lib/dashboard/widgets";
 
 const SUGGESTIONS = [
-  "How am I doing — and how do I improve?",
-  "Where am I wasting spend?",
-  "What should I do differently?",
   "Show me revenue trends",
   "How does ROAS compare across companies?",
   "Break down revenue by day of week",
+  "Chart spend vs conversions",
 ];
 
-/** AMPace: your ad-performance advisor. It coaches you on how to do better and builds analytics on request. */
+const INTRO =
+  "👋 I build analytics on request. Open a company, then ask for any chart, table, or KPI — I’ll drop it on its dashboard.";
+
+/** AMPace: builds analytics (charts, tables, KPIs) on request. Activity nudges live separately. */
 export function AmpaceChat() {
   const { company, label } = useCompanyContext();
 
   const onSubmit = async (q: string): Promise<ChatMsg> => {
-    // Coaching intent → scripted persona advice (works with or without a company open).
-    if (isCoachingPrompt(q)) {
-      return { role: "assistant", content: coachingReply(company, label, q) };
-    }
     if (!company) {
-      return { role: "assistant", content: "Open a company first — then I’ll build charts, tables, and alerts on its Analytics dashboard. Or ask me how to improve, where you’re wasting spend, or what to do differently." };
+      return { role: "assistant", content: "Open a company first — then I’ll build charts, tables, and KPIs on its Analytics dashboard." };
     }
     // Build widgets deterministically and drop them on the dashboard (instant, demo-safe).
     const specs = routePrompt(q);
@@ -50,11 +46,11 @@ export function AmpaceChat() {
     <ChatDrawer
       label="AMPace"
       Icon={Compass}
-      subtitle={label ? `${label} · advisor & analytics` : "your ad-performance advisor"}
-      placeholder="Ask for advice, or a chart, table, or KPI…"
-      busyLabel="Analyzing…"
+      subtitle={label ? `${label} · analytics builder` : "analytics builder"}
+      placeholder="Ask for a chart, table, or KPI…"
+      busyLabel="Building…"
       suggestions={SUGGESTIONS}
-      intro={personaIntro(label)}
+      intro={INTRO}
       openEvent="ampulse:open-advisor"
       onSubmit={onSubmit}
     />

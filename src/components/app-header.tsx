@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { AmpaceChat } from "@/components/agent/ampace-chat";
+import { SuggestionNudge } from "@/components/agent/suggestion-nudge";
 import { SlackBot } from "@/components/agent/slack-bot";
 import { NewsDrawer } from "@/components/news/news-drawer";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
           </Button>
         </div>
       </div>
+      <SuggestionNudge />
     </header>
   );
 }

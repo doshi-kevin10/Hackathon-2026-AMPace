@@ -8,7 +8,14 @@
  * window event, so the header and the grid stay in sync without shared state.
  */
 
-export type ActivityKind = "add-row" | "delete-row" | "edit-cell" | "add-column" | "delete-column" | "download";
+export type ActivityKind =
+  | "add-row"
+  | "delete-row"
+  | "edit-cell"
+  | "add-column"
+  | "delete-column"
+  | "download"
+  | "data-update"; // Databricks-side row growth (e.g. the live feeder)
 
 export interface ActivityEntry {
   id: string;

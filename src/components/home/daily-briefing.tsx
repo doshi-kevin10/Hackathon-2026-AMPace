@@ -1,37 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, Compass, Info, Lightbulb, Sunrise, TrendingDown, TrendingUp, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, CheckCircle2, Sparkles, Sunrise, X } from "lucide-react";
 import { AnimatedContent } from "@/components/reactbits/animated-content";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  ATTENTION_COMPANY,
-  BRIEFING_HIGHLIGHTS,
-  BRIEFING_SUGGESTION,
-  greetingFor,
-  type HighlightTone,
-} from "@/lib/advisor/persona";
+import { Button } from "@/components/ui/button";
+import { getBehavior, subscribeBehavior } from "@/lib/activity/behavior";
+import { buildSuggestions, type Suggestion, type SuggestionTone } from "@/lib/advisor/suggestions";
+import type { Dataset } from "@/lib/databricks/analytics";
 import { cn } from "@/lib/utils";
 
 const dismissKey = (day: string) => `ampulse:briefing-dismissed:${day}`;
+const greetingFor = (h: number) => (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
 
-const TONE: Record<HighlightTone, { icon: typeof TrendingUp; className: string }> = {
-  up: { icon: TrendingUp, className: "text-emerald-600" },
-  down: { icon: TrendingDown, className: "text-rose-600" },
-  info: { icon: Info, className: "text-primary" },
+const TONE_DOT: Record<SuggestionTone, string> = {
+  new: "bg-emerald-500",
+  attention: "bg-amber-500",
+  info: "bg-primary",
 };
 
 /**
- * "Summary of the day" — a scripted morning briefing shown atop the home screen
- * on login. Dismissible; the dismissal is remembered per calendar day, so it
- * returns fresh each morning. Copy comes from lib/advisor/persona (story-anchored).
+ * Home-screen activity summary. Reads the same behavior-driven suggestion engine
+ * as the ambient nudge and lists what's worth a second look based on what you've
+ * been doing (and what you've skipped). Neutral and observational — no scores,
+ * no coaching. Dismissible per calendar day.
  */
 export function DailyBriefing({ userName }: { userName: string }) {
   // Start hidden so SSR and the first client render match; the effect reveals it.
   const [show, setShow] = useState(false);
   const [greeting, setGreeting] = useState("Hello");
   const [dateLabel, setDateLabel] = useState("");
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const now = new Date();
@@ -41,6 +42,21 @@ export function DailyBriefing({ userName }: { userName: string }) {
     setShow(localStorage.getItem(dismissKey(day)) !== "1");
   }, []);
 
+  useEffect(() => {
+    fetch("/api/datasets")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.datasets)) setDatasets(d.datasets as Dataset[]);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const recompute = () => setSuggestions(buildSuggestions(datasets, getBehavior()));
+    recompute();
+    return subscribeBehavior(recompute);
+  }, [datasets]);
+
   if (!show) return null;
 
   const firstName = userName.split(" ")[0];
@@ -48,64 +64,62 @@ export function DailyBriefing({ userName }: { userName: string }) {
     localStorage.setItem(dismissKey(new Date().toISOString().slice(0, 10)), "1");
     setShow(false);
   };
+  const top = suggestions.slice(0, 3);
 
   return (
     <AnimatedContent className="mb-6">
       <section
-        aria-label="Daily briefing"
+        aria-label="Activity summary"
         className="relative overflow-hidden rounded-2xl border border-border bg-card px-7 py-6 shadow-sm"
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-primary/50 to-transparent" aria-hidden />
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss briefing"
+          aria-label="Dismiss"
           className="absolute right-4 top-4 grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />
         </button>
 
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-          <Sunrise className="size-3.5" /> Your summary of the day
+          <Sunrise className="size-3.5" /> Your activity summary
         </div>
         <h2 className="mt-2 text-3xl font-bold leading-tight tracking-tight text-foreground">
           {greeting}, {firstName}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">{dateLabel}</p>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:gap-8">
-          <ul className="grid content-start gap-3.5">
-            {BRIEFING_HIGHLIGHTS.map((h) => {
-              const { icon: Icon, className } = TONE[h.tone];
-              return (
-                <li key={h.text} className="flex items-start gap-3 text-[15px] leading-snug">
-                  <Icon className={cn("mt-0.5 size-[18px] shrink-0", className)} aria-hidden />
-                  <span className="text-foreground/90">{h.text}</span>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3.5">
-            <Lightbulb className="mt-0.5 size-[18px] shrink-0 text-primary" aria-hidden />
-            <p className="text-[15px] leading-snug">
-              <span className="font-semibold">Suggested move — </span>
-              <span className="text-foreground/90">{BRIEFING_SUGGESTION}</span>
-            </p>
+        {top.length === 0 ? (
+          <div className="mt-6 flex items-start gap-3 text-[15px] leading-snug text-muted-foreground">
+            <CheckCircle2 className="mt-0.5 size-[18px] shrink-0 text-emerald-600" aria-hidden />
+            <span>You&rsquo;re all caught up. Open a company and AMPulse will flag anything worth a second look as you work.</span>
           </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2.5">
-          <Button size="sm" onClick={() => window.dispatchEvent(new CustomEvent("ampulse:open-advisor"))} className="gap-1.5">
-            <Compass className="size-4" /> Open advisor
-          </Button>
-          <Link
-            href={`/datasets/${ATTENTION_COMPANY.name}/analytics`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
-          >
-            See {ATTENTION_COMPANY.label} <ArrowRight className="size-4" />
-          </Link>
-        </div>
+        ) : (
+          <>
+            <div className="mt-5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Sparkles className="size-3.5 text-primary" /> Based on what you&rsquo;ve been looking at
+            </div>
+            <ul className="mt-3 grid content-start gap-2">
+              {top.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onClick={() => router.push(s.href)}
+                    className="flex w-full items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted/50"
+                  >
+                    <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", TONE_DOT[s.tone])} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold leading-snug text-foreground">{s.title}</span>
+                      <span className="block text-sm leading-snug text-muted-foreground">{s.body}</span>
+                    </span>
+                    <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
     </AnimatedContent>
   );
