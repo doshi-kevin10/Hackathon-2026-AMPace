@@ -1,4 +1,5 @@
 import { executeStatement } from "./client";
+import { isMockEnabled, mockDatasets, mockLiveTable } from "./mock-data";
 import { pullLiveTable, type LiveTable } from "./sync";
 
 /**
@@ -51,6 +52,7 @@ export const isValidDatasetName = (name: string): boolean =>
 
 /** List the company datasets with a cheap freshness summary (single union query). */
 export async function listDatasets(): Promise<Dataset[]> {
+  if (isMockEnabled()) return mockDatasets();
   const { rows } = await executeStatement(
     `SHOW TABLES IN \`${CATALOG}\`.\`${SCHEMA}\` LIKE '${DATASET_PREFIX}*'`
   );
@@ -134,6 +136,7 @@ export async function getDatasetRows(name: string): Promise<LiveTable & { label:
   if (!isValidDatasetName(name)) {
     throw new Error(`Unknown dataset "${name}"`);
   }
+  if (isMockEnabled()) return mockLiveTable(name);
   const live = await pullLiveTable(name);
   if (usesCpa(name)) relabelRoasToCpa(live);
   return { ...live, label: prettify(name) };

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { claimNewAlerts } from "@/lib/alerts/alert-store";
+import { ownerFor } from "@/lib/alerts/owners";
 import { isSlackConfigured, sendSlackAlert } from "@/lib/alerts/slack";
 import { detectAnomalies } from "@/lib/analytics/anomalies";
 import { requireUser } from "@/lib/auth/server";
@@ -75,14 +76,21 @@ export async function GET(
     const isNew = freshKeys.has(alertKeyFor(a.id));
     if (isNew) {
       const arrow = a.direction === "jump" ? "📈" : "📉";
-      await sendSlackAlert(
-        [
-          `${arrow} *${company}* — ${a.columnName} ${a.direction} of ${compactPct(a.changePct)} on ${a.date}`,
-          found
-            ? `Likely cause: "${found.headline?.title ?? "unknown"}" — ${found.explanation}${found.headline ? `\n${found.headline.link}` : ""}`
-            : "No related news found yet.",
-        ].join("\n")
-      );
+      await sendSlackAlert({
+        // A drop is the risky move; size it by magnitude. A jump is informational.
+        severity: a.direction === "drop" ? (Math.abs(a.changePct) >= 0.3 ? "critical" : "warning") : "info",
+        title: `${company} · ${a.columnName} ${arrow} ${compactPct(a.changePct)} on ${a.date}`,
+        detail: found
+          ? `Likely cause: *${found.headline?.title ?? "unknown"}* — ${found.explanation}`
+          : "No related news found yet.",
+        metric: a.columnName,
+        date: a.date,
+        owner: ownerFor(name),
+        href: `/datasets/${name}/analytics`,
+        context: "anomaly · news-explained",
+        sourceUrl: found?.headline?.link,
+        sourceLabel: found?.headline?.source ? `Read: ${found.headline.source}` : "Read the news",
+      });
     }
     anomalyViews.push({
       id: a.id,

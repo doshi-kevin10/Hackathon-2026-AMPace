@@ -61,8 +61,8 @@ export function Dashboard() {
       {state.kind === "ready" && state.datasets.length > 0 && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {state.datasets.map((d) => (
-            <Link key={d.name} href={`/datasets/${d.name}`} className="group focus-visible:outline-none">
-              <Card className="h-full overflow-hidden border-primary/10 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-lg group-hover:shadow-primary/5 group-focus-visible:border-primary">
+            <div key={d.name} className="group">
+              <Card className="h-full overflow-hidden border-primary/10 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-lg group-hover:shadow-primary/5">
                 {/* Blue accent strip */}
                 <div className="h-1.5 bg-gradient-to-r from-primary to-primary/40" aria-hidden />
                 <CardContent className="flex h-full flex-col gap-5 p-6">
@@ -112,17 +112,22 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-auto flex items-center justify-between text-xs">
+                  <div className="mt-auto grid gap-2 text-xs">
                     <span className="text-muted-foreground">
                       {d.latestDate ? `Latest ${d.latestDate}` : "No data yet"}
                     </span>
-                    <span className="font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      Open analytics →
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <Link href={`/datasets/${d.name}`} className="text-muted-foreground hover:text-foreground">
+                        Data →
+                      </Link>
+                      <Link href={`/datasets/${d.name}/analytics`} className="font-medium text-primary hover:underline">
+                        Analytics →
+                      </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       )}

@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 
-// Public paths that never require a session.
-const PUBLIC = ["/login", "/api/auth/login", "/api/auth/logout"];
+// Public paths that never require a session. The internal scheduler route is
+// public to middleware but enforces its own constant-time CRON_SECRET check
+// (external cron has no session cookie).
+const PUBLIC = ["/login", "/api/auth/login", "/api/auth/logout", "/api/internal"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
