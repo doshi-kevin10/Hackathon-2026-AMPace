@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { editKey } from "@/lib/datatab/derive";
-import { sheetTint } from "@/lib/datatab/sheets";
 import { CANONICAL_ORDER, isCanonicalTable } from "@/lib/excel/canonicalize";
 import type { CalcFormat } from "@/lib/formula/calc-columns";
 import { formatCell } from "@/lib/format";
@@ -35,6 +34,12 @@ import { cn } from "@/lib/utils";
 type Row = Record<string, CellValue>;
 
 const NUMERIC = new Set(["integer", "decimal", "currency", "percentage"]);
+
+/** Faint blue wash that groups the numeric metric columns (AMPlify-style), theme-aware. */
+const NUM_TINT = "bg-sky-50/70 dark:bg-sky-950/25";
+
+/** Columns that represent a delta get red/green values (like AMPlify's % Change / $ Change). */
+const isChangeCol = (name: string) => /change|delta|diff|growth|Δ|\bvs\b|\bwow\b|\bmom\b|\byoy\b/i.test(name);
 
 interface DataTableProps {
   columns: ParsedColumn[];
@@ -69,7 +74,6 @@ interface DataTableProps {
 /** Excel-like grid: scrollable, gridlines, row numbers, sticky header, sort, search, filters, inline edit + calc columns. */
 export function DataTable(props: DataTableProps) {
   const { columns, rows, totalRowCount, previewTruncated, label, keys, onEditCell, onAddColumn, onDeleteColumn, onAddRow, onDeleteRow, onDownload, notes, onSetNote, accentColor } = props;
-  const headerStyle = accentColor ? { backgroundColor: sheetTint(accentColor, 16) } : undefined;
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [internalGlobalFilter, setInternalGlobalFilter] = useState("");
   const [internalColumnFilters, setInternalColumnFilters] = useState<ColumnFiltersState>([]);
@@ -268,24 +272,27 @@ export function DataTable(props: DataTableProps) {
       </div>
 
       <div
-        className="min-h-0 flex-1 overflow-auto rounded-md border border-border"
+        className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-card"
         style={accentColor ? { borderTopColor: accentColor, borderTopWidth: 3 } : undefined}
       >
         <table className="w-full border-collapse text-sm" role="grid">
           <thead className="sticky top-0 z-10">
             <tr>
-              <th className="sticky left-0 z-20 w-10 border border-border bg-muted px-1 py-1 text-center text-xs font-normal text-muted-foreground" />
+              <th className="sticky left-0 z-20 w-10 border-r border-b border-border bg-muted px-1 py-1 text-center text-xs font-normal text-muted-foreground" />
               {table.getHeaderGroups()[0].headers.map((header) => {
                 const col = header.column.columnDef.meta as ParsedColumn;
                 const sorted = header.column.getIsSorted();
                 const isCalc = col.formula != null;
+                const numeric = NUMERIC.has(colType(col));
                 return (
                   <th
                     key={header.id}
-                    className="min-w-24 border border-border bg-muted px-2 py-1.5 text-left font-semibold whitespace-nowrap"
-                    style={headerStyle}
+                    className={cn(
+                      "min-w-24 border-r border-b border-border/60 px-3 py-2 text-left whitespace-nowrap",
+                      numeric ? NUM_TINT : "bg-muted"
+                    )}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground">
                       <button
                         type="button"
                         className="flex flex-1 items-center gap-1 hover:text-foreground"
@@ -294,11 +301,11 @@ export function DataTable(props: DataTableProps) {
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
                         {isCalc && (
-                          <span className="font-normal text-muted-foreground" aria-label="computed column">
+                          <span className="font-normal text-muted-foreground/70" aria-label="computed column">
                             ƒ
                           </span>
                         )}
-                        <span className="ml-auto pl-1 text-xs text-muted-foreground" aria-hidden>
+                        <span className="ml-auto pl-1 text-xs text-primary" aria-hidden>
                           {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : ""}
                         </span>
                       </button>
@@ -320,14 +327,14 @@ export function DataTable(props: DataTableProps) {
             </tr>
             {showFilters && (
               <tr>
-                <th className="sticky left-0 z-20 w-10 border border-border bg-muted p-0" />
+                <th className="sticky left-0 z-20 w-10 border-r border-b border-border bg-muted p-0" />
                 {table.getHeaderGroups()[0].headers.map((header) =>
                   header.column.id === dateCol?.id ? (
-                    <th key={header.id} className="border border-border bg-muted p-1 text-center text-[11px] font-normal text-muted-foreground">
+                    <th key={header.id} className="border-r border-b border-border/60 bg-muted p-1 text-center text-[11px] font-normal text-muted-foreground">
                       use range ↑
                     </th>
                   ) : (
-                    <th key={header.id} className="border border-border bg-muted p-1">
+                    <th key={header.id} className="border-r border-b border-border/60 bg-muted p-1">
                       <Input
                         value={(header.column.getFilterValue() as string) ?? ""}
                         onChange={(e) => header.column.setFilterValue(e.target.value)}
@@ -346,7 +353,7 @@ export function DataTable(props: DataTableProps) {
               <tr>
                 <td
                   colSpan={visibleCols.length + 1}
-                  className="h-20 border border-border text-center text-muted-foreground"
+                  className="h-20 border-b border-border text-center text-muted-foreground"
                 >
                   {rows.length === 0 ? "This table has no data rows." : "No rows match the current filters."}
                 </td>
@@ -356,7 +363,7 @@ export function DataTable(props: DataTableProps) {
                 const origIndex = Number(row.id);
                 return (
                 <tr key={row.id} className="group/row hover:bg-muted/40">
-                  <td className="sticky left-0 z-[5] w-10 border border-border bg-muted p-0 text-center text-xs text-muted-foreground tabular-nums">
+                  <td className="sticky left-0 z-[5] w-10 border-r border-b border-border/60 bg-muted p-0 text-center text-xs text-muted-foreground tabular-nums">
                     {onDeleteRow ? (
                       <>
                         <span className="px-1 py-1 group-hover/row:hidden">{i + 1}</span>
@@ -404,6 +411,8 @@ export function DataTable(props: DataTableProps) {
                     }
 
                     const note = notes?.[editKey(origIndex, col.id)];
+                    const rawVal = row.original[col.id]?.normalized;
+                    const change = isChangeCol(col.name) && typeof rawVal === "number" ? rawVal : null;
                     return (
                       <td
                         key={cell.id}
@@ -416,8 +425,10 @@ export function DataTable(props: DataTableProps) {
                             : undefined
                         }
                         className={cn(
-                          "group/cell relative max-w-64 truncate border border-border/70 bg-background px-2 py-1 whitespace-nowrap",
-                          numeric && "text-right tabular-nums",
+                          "group/cell relative max-w-64 truncate border-b border-border/40 px-3 py-1.5 whitespace-nowrap",
+                          numeric && cn("text-right tabular-nums", NUM_TINT),
+                          change != null && change > 0 && "font-medium text-emerald-600 dark:text-emerald-400",
+                          change != null && change < 0 && "font-medium text-red-600 dark:text-red-400",
                           canEdit && "cursor-cell"
                         )}
                         title={canEdit ? "Double-click to edit" : text}
