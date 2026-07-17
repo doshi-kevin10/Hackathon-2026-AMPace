@@ -1,3 +1,4 @@
+import { companyLabel } from "@/lib/company-labels";
 import { executeStatement } from "./client";
 import { isMockEnabled, mockDatasets, mockLiveTable } from "./mock-data";
 import { pullLiveTable, type LiveTable } from "./sync";
@@ -39,13 +40,6 @@ export interface Dataset {
   /** Total ad spend across the dataset (card summary), or null. */
   totalAdspend: number | null;
 }
-
-// Short all-letter tokens are acronyms (aa→AA, bbb→BBB); others title-case.
-const titleToken = (t: string): string =>
-  /^[a-z]{1,3}$/.test(t) ? t.toUpperCase() : t.charAt(0).toUpperCase() + t.slice(1);
-
-const prettify = (table: string): string =>
-  table.replace(new RegExp(`^${DATASET_PREFIX}`), "").split("_").filter(Boolean).map(titleToken).join(" ").trim();
 
 export const isValidDatasetName = (name: string): boolean =>
   VALID_NAME.test(name) && name.startsWith(DATASET_PREFIX);
@@ -92,7 +86,7 @@ export async function listDatasets(): Promise<Dataset[]> {
     const st = stats.get(name);
     return {
       name,
-      label: prettify(name),
+      label: companyLabel(name),
       fqn: `${CATALOG}.${SCHEMA}.${name}`,
       rowCount: st?.c ?? 0,
       latestDate: st?.d ?? null,
@@ -139,5 +133,5 @@ export async function getDatasetRows(name: string): Promise<LiveTable & { label:
   if (isMockEnabled()) return mockLiveTable(name);
   const live = await pullLiveTable(name);
   if (usesCpa(name)) relabelRoasToCpa(live);
-  return { ...live, label: prettify(name) };
+  return { ...live, label: companyLabel(name) };
 }

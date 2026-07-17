@@ -58,7 +58,7 @@ const STORIES: Story[] = [
     cvrTrend: 0.00002,
     revPerConv: 92,
     // Healthy: revenue accelerates in the last week (CVR bump).
-    recent: (t, days) => (t >= days - 7 ? { revMul: 1.14, clickMul: 1.03 } : {}),
+    recent: (t, days) => (t >= days - 7 ? { revMul: 1.25, clickMul: 1.05 } : {}),
   },
   {
     name: "excel_company_adidas",
@@ -71,8 +71,8 @@ const STORIES: Story[] = [
     cvr0: 0.034,
     cvrTrend: -0.00006,
     revPerConv: 61,
-    // CPC blowout: spend jumps 40% in the last week while clicks stay flat → CPC + ROAS problem.
-    recent: (t, days) => (t >= days - 7 ? { spendMul: 1.4 } : {}),
+    // CPC blowout: spend jumps ~50% in the last week while clicks stay flat → CPC + ROAS problem.
+    recent: (t, days) => (t >= days - 7 ? { spendMul: 1.5 } : {}),
   },
   {
     name: "excel_company_spotify",
@@ -86,7 +86,7 @@ const STORIES: Story[] = [
     cvrTrend: 0.00001,
     revPerConv: 40,
     // Anomaly: a one-day revenue spike 4 days from the end.
-    recent: (t, days) => (t === days - 4 ? { spike: true, revMul: 3.2 } : {}),
+    recent: (t, days) => (t === days - 4 ? { spike: true, revMul: 3.6 } : {}),
   },
   {
     name: "excel_company_airbnb",
@@ -109,21 +109,28 @@ const isoAt = (t: number) => new Date(ANCHOR - (DAYS - 1 - t) * MS_DAY).toISOStr
 
 function seriesFor(story: Story): DailyPoint[] {
   const rand = mulberry32(story.seed);
+  // Uniform multiplicative jitter in [1-s, 1+s]. Each series draws its OWN jitter
+  // so clicks, CPC, and revenue don't move in lockstep — that lockstep is what made
+  // the old series a textbook sawtooth. Weekly seasonality + trend + story events are
+  // the signal underneath; day-to-day jitter is the organic texture on top. Noise is
+  // per-day (averages out over the 7-day windows the watchtower/forecast use), so the
+  // baked-in stories survive while the daily view looks like real ad data.
+  const jitter = (s: number) => 1 + (rand() - 0.5) * 2 * s;
   const out: DailyPoint[] = [];
   for (let t = 0; t < DAYS; t++) {
-    const noise = rand() - 0.5;
     const seasonal = 1 + 0.08 * Math.sin((2 * Math.PI * (t % 7)) / 7);
     const ev = story.recent?.(t, DAYS) ?? {};
 
-    let clicks = Math.round((story.clicksBase + story.clickTrend * t) * seasonal * (1 + noise * 0.05) * (ev.clickMul ?? 1));
+    let clicks = Math.round((story.clicksBase + story.clickTrend * t) * seasonal * jitter(0.18) * (ev.clickMul ?? 1));
     clicks = Math.max(1, clicks);
 
-    const cpc = Math.max(0.05, story.cpc0 + story.cpcTrend * t);
+    const cpc = Math.max(0.05, (story.cpc0 + story.cpcTrend * t) * jitter(0.12));
     const adspend = clicks * cpc * (ev.spendMul ?? 1);
 
-    const cvr = Math.max(0.005, story.cvr0 + story.cvrTrend * t);
+    const cvr = Math.max(0.005, (story.cvr0 + story.cvrTrend * t) * jitter(0.15));
     const conversions = Math.max(0, Math.round(clicks * cvr));
-    const revenue = conversions * story.revPerConv * (ev.revMul ?? 1); // ev.revMul carries the spike
+    // Order value varies day to day — decouples revenue from clicks so ROAS swings realistically.
+    const revenue = conversions * story.revPerConv * jitter(0.28) * (ev.revMul ?? 1); // ev.revMul carries the spike
 
     out.push({
       date: isoAt(t),

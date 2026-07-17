@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Explanation } from "@/lib/analytics/ai-explainer";
 import type { AnalyticsRequestBody } from "@/lib/analytics/request-schemas";
@@ -34,7 +34,7 @@ export function AiSummaryPanel({ company, analytics }: { company: string; analyt
     <div className="rounded-lg border bg-card/50 p-4">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Sparkles className="size-4 text-primary" aria-hidden /> AI summary
+          <Lightbulb className="size-4 text-primary" aria-hidden /> AI summary
           <span className="font-normal text-muted-foreground">(optional)</span>
         </h3>
         <Button variant="outline" size="sm" onClick={generate} disabled={loading}>

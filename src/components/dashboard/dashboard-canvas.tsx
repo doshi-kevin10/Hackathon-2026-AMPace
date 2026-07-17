@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles, Trash2 } from "lucide-react";
+import { LineChart, Trash2 } from "lucide-react";
 import { WidgetCard, type CompanyStat } from "@/components/dashboard/widget-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { deriveTable, emptyEdits, type LocalEdits } from "@/lib/datatab/derive";
@@ -84,17 +84,12 @@ export function DashboardCanvas({ name }: { name: string }) {
       <div className="grid min-h-[50vh] place-items-center rounded-2xl border border-dashed border-border bg-card/40 p-10 text-center">
         <div className="max-w-md">
           <div className="mx-auto mb-4 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
-            <Sparkles className="size-6" />
+            <LineChart className="size-6" />
           </div>
           <h2 className="text-lg font-semibold tracking-tight">Build your analytics with AMPace</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            This dashboard starts blank. Open <span className="font-medium text-foreground">AMPace</span> (top-right) and ask for a chart, table, or alert — for example:
+            This dashboard starts blank. Open <span className="font-medium text-foreground">AMPace</span> (top-right) and ask for a chart, table, or alert.
           </p>
-          <div className="mt-4 grid gap-2 text-left text-sm">
-            {["Show me revenue trends", "How does ROAS compare across companies?", "Break down revenue by day of week", "What needs my attention?"].map((s) => (
-              <div key={s} className="rounded-lg border border-border bg-background px-3 py-2 text-muted-foreground">“{s}”</div>
-            ))}
-          </div>
         </div>
       </div>
     );

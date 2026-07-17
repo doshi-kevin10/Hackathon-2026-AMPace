@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-svh">
       <AppHeader user={user} />
-      <Dashboard />
+      <Dashboard userName={user.name} />
     </div>
   );
 }

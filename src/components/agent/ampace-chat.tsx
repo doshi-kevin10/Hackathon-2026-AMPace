@@ -1,24 +1,30 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Compass } from "lucide-react";
 import { ChatDrawer, useCompanyContext, type ChatMsg } from "@/components/agent/chat-drawer";
+import { coachingReply, isCoachingPrompt, personaIntro } from "@/lib/advisor/persona";
 import { addWidgets, routePrompt } from "@/lib/dashboard/widgets";
 
 const SUGGESTIONS = [
-  "Forecast revenue for the next two weeks",
+  "How am I doing — and how do I improve?",
+  "Where am I wasting spend?",
+  "What should I do differently?",
   "Show me revenue trends",
   "How does ROAS compare across companies?",
   "Break down revenue by day of week",
-  "What needs my attention?",
 ];
 
-/** AMPace: describe the analytics you want; it builds them on the company's dashboard. Analytics only. */
+/** AMPace: your ad-performance advisor. It coaches you on how to do better and builds analytics on request. */
 export function AmpaceChat() {
   const { company, label } = useCompanyContext();
 
   const onSubmit = async (q: string): Promise<ChatMsg> => {
+    // Coaching intent → scripted persona advice (works with or without a company open).
+    if (isCoachingPrompt(q)) {
+      return { role: "assistant", content: coachingReply(company, label, q) };
+    }
     if (!company) {
-      return { role: "assistant", content: "Open a company first — then I’ll build charts, tables, and alerts on its Analytics dashboard." };
+      return { role: "assistant", content: "Open a company first — then I’ll build charts, tables, and alerts on its Analytics dashboard. Or ask me how to improve, where you’re wasting spend, or what to do differently." };
     }
     // Build widgets deterministically and drop them on the dashboard (instant, demo-safe).
     const specs = routePrompt(q);
@@ -43,11 +49,13 @@ export function AmpaceChat() {
   return (
     <ChatDrawer
       label="AMPace"
-      Icon={Sparkles}
-      subtitle={label ? `${label} · analytics` : "open a company to build analytics"}
-      placeholder="Ask for a chart, table, or KPI…"
+      Icon={Compass}
+      subtitle={label ? `${label} · advisor & analytics` : "your ad-performance advisor"}
+      placeholder="Ask for advice, or a chart, table, or KPI…"
       busyLabel="Analyzing…"
       suggestions={SUGGESTIONS}
+      intro={personaIntro(label)}
+      openEvent="ampulse:open-advisor"
       onSubmit={onSubmit}
     />
   );

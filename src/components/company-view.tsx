@@ -1,33 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import { DashboardCanvas } from "@/components/dashboard/dashboard-canvas";
 import { DataWorkspace } from "@/components/tables/data-workspace";
+import { companyLabel } from "@/lib/company-labels";
 
 type Tab = "data" | "analytics";
-
-const prettify = (slug: string) =>
-  slug
-    .replace(/^excel_company_/, "")
-    .split("_")
-    .filter(Boolean)
-    .map((t) => (/^[a-z]{1,3}$/.test(t) ? t.toUpperCase() : t[0].toUpperCase() + t.slice(1)))
-    .join(" ");
 
 /** One company, two things: Data and Analytics. Nothing else. */
 export function CompanyView({ name, initialTab = "data" }: { name: string; initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
-  const label = prettify(name);
+  const [building, setBuilding] = useState(false);
+  const buildTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const label = companyLabel(name);
 
-  // The Analyst chatbot (top bar) switches us to Analytics when it adds widgets.
+  // AMPace (top bar) switches us to Analytics when it adds widgets. Show a 3s
+  // "building" buffer over the canvas before revealing the freshly-built plots.
   useEffect(() => {
     const onShow = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (!detail || detail === name) setTab("analytics");
+      if (detail && detail !== name) return;
+      setTab("analytics");
+      setBuilding(true);
+      if (buildTimer.current) clearTimeout(buildTimer.current);
+      buildTimer.current = setTimeout(() => setBuilding(false), 3000);
     };
     window.addEventListener("ampulse:show-analytics", onShow);
-    return () => window.removeEventListener("ampulse:show-analytics", onShow);
+    return () => {
+      window.removeEventListener("ampulse:show-analytics", onShow);
+      if (buildTimer.current) clearTimeout(buildTimer.current);
+    };
   }, [name]);
 
   return (
@@ -59,11 +63,30 @@ export function CompanyView({ name, initialTab = "data" }: { name: string; initi
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
-          <div className="mx-auto max-w-[1600px]">
+          <div className="relative mx-auto max-w-[1600px]">
             <DashboardCanvas name={name} />
+            {building && <BuildingOverlay />}
           </div>
         </div>
       )}
     </main>
+  );
+}
+
+/** Polished 3s buffer shown over the canvas while AMPace's freshly-built plots render underneath. */
+function BuildingOverlay() {
+  return (
+    <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-background/80 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="relative grid size-14 place-items-center">
+          <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" aria-hidden />
+          <span className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <Loader2 className="size-7 animate-spin" />
+          </span>
+        </div>
+        <p className="text-sm font-semibold">Building your analytics…</p>
+        <p className="text-xs text-muted-foreground">Crunching the numbers and drawing your charts.</p>
+      </div>
+    </div>
   );
 }

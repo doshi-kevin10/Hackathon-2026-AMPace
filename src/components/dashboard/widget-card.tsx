@@ -5,12 +5,16 @@ import { X } from "lucide-react";
 import { BarChart } from "@/components/charts/bar-chart";
 import { compactNumber } from "@/components/charts/format";
 import { LineChart } from "@/components/charts/line-chart";
+import { PieChart } from "@/components/charts/pie-chart";
 import { ForecastWidget } from "@/components/dashboard/forecast-widget";
 import { MomentumWidget } from "@/components/dashboard/momentum-widget";
 import { computeKpiTotals } from "@/lib/analytics/kpi";
 import { byDayOfWeek, timeSeries, topRows, type Table } from "@/lib/dashboard/compute";
 import { colorForMetric, type WidgetSpec } from "@/lib/dashboard/widgets";
 import { cn } from "@/lib/utils";
+
+/** Colorful, evenly-distinct slice colors for pie widgets (position-based is fine here — slices aren't a fixed entity). */
+const PIE_PALETTE = ["var(--chart-1)", "var(--chart-2)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)", "var(--chart-7)", "var(--chart-8)"];
 
 export interface CompanyStat {
   name: string;
@@ -114,6 +118,17 @@ export function WidgetCard({
         const data = byDayOfWeek(table, metric);
         if (!data.length) return <Empty />;
         return <BarChart data={data} height={220} color={colorForMetric(metric)} formatValue={fmtFor(metric)} />;
+      }
+      case "pie": {
+        const metric = spec.metric ?? "Revenue";
+        const data = byDayOfWeek(table, metric).filter((d) => d.value > 0);
+        if (!data.length) return <Empty />;
+        const pieData = data.map((d, i) => ({ ...d, color: PIE_PALETTE[i % PIE_PALETTE.length] }));
+        return (
+          <div className="grid h-full place-items-center">
+            <PieChart data={pieData} size={200} formatValue={fmtFor(metric)} />
+          </div>
+        );
       }
       case "compare": {
         const isSpend = spec.compareMetric === "spend";

@@ -21,7 +21,7 @@ interface DevUser extends SessionUser {
 }
 
 export const DEV_USERS: DevUser[] = [
-  { email: "superadmin@ampulse.dev", name: "Super Admin", role: "SUPER_ADMIN", password: "ampulse" },
+  { email: "superadmin@ampulse.dev", name: "Kevin Doshi", role: "SUPER_ADMIN", password: "ampulse" },
   { email: "analyst@ampulse.dev", name: "Ana Analyst", role: "ANALYST", password: "ampulse" },
   { email: "viewer@ampulse.dev", name: "Val Viewer", role: "VIEWER", password: "ampulse" },
 ];

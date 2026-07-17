@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Sparkles, X } from "lucide-react";
+import { ArrowUp, Compass, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AgentAction, AgentMessage } from "@/lib/agent/agent";
 
@@ -52,14 +52,14 @@ export function AgentPanel() {
   return (
     <>
       <Button variant="default" size="sm" onClick={() => setOpen(true)} className="gap-1.5">
-        <Sparkles className="size-4" /> Ask AMPulse
+        <Compass className="size-4" /> Ask AMPulse
       </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/20" onClick={() => setOpen(false)}>
           <aside className="flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <header className="flex items-center gap-2 border-b px-4 py-3">
-              <Sparkles className="size-4 text-primary" />
+              <Compass className="size-4 text-primary" />
               <span className="font-semibold">AMPulse agent</span>
               <span className="text-xs text-muted-foreground">grounded in your real metrics</span>
               <button type="button" onClick={() => setOpen(false)} className="ml-auto rounded-md p-1 hover:bg-muted" aria-label="Close">

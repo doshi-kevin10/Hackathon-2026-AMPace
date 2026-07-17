@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowUp, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { companyLabel } from "@/lib/company-labels";
 
 export interface ChatMsg {
   role: "user" | "assistant";
@@ -12,13 +13,7 @@ export interface ChatMsg {
   chips?: string[];
 }
 
-export const prettify = (slug: string) =>
-  slug
-    .replace(/^excel_company_/, "")
-    .split("_")
-    .filter(Boolean)
-    .map((t) => (/^[a-z]{1,3}$/.test(t) ? t.toUpperCase() : t[0].toUpperCase() + t.slice(1)))
-    .join(" ");
+export const prettify = companyLabel;
 
 /** The company (dataset slug + display label) implied by the current URL, if any. */
 export function useCompanyContext(): { company: string | null; label: string | null } {
@@ -40,6 +35,8 @@ export function ChatDrawer({
   placeholder,
   suggestions,
   busyLabel = "Working…",
+  intro,
+  openEvent,
   onSubmit,
 }: {
   label: string;
@@ -48,6 +45,10 @@ export function ChatDrawer({
   placeholder: string;
   suggestions: string[];
   busyLabel?: string;
+  /** Proactive message shown in the empty state, before the suggestions. */
+  intro?: string;
+  /** Window event name that opens this drawer (lets other UI pop it open). */
+  openEvent?: string;
   onSubmit: (text: string) => Promise<ChatMsg>;
 }) {
   const [open, setOpen] = useState(false);
@@ -59,6 +60,13 @@ export function ChatDrawer({
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [msgs, busy]);
+
+  useEffect(() => {
+    if (!openEvent) return;
+    const onOpen = () => setOpen(true);
+    window.addEventListener(openEvent, onOpen);
+    return () => window.removeEventListener(openEvent, onOpen);
+  }, [openEvent]);
 
   const send = async (text: string) => {
     const q = text.trim();
@@ -95,6 +103,11 @@ export function ChatDrawer({
             <div ref={scroller} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
               {msgs.length === 0 && (
                 <div className="text-sm text-muted-foreground">
+                  {intro && (
+                    <div className="mb-4 rounded-2xl border border-border bg-background px-3.5 py-2.5 leading-relaxed text-foreground">
+                      {intro}
+                    </div>
+                  )}
                   <p className="mb-3">Try:</p>
                   <div className="grid gap-2">
                     {suggestions.map((s) => (

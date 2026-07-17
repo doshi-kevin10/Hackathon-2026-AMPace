@@ -9,7 +9,7 @@
  * window event so the chatbot and the canvas stay in sync.
  */
 
-export type WidgetType = "kpi" | "line" | "barDow" | "compare" | "alerts" | "table" | "momentum" | "forecast";
+export type WidgetType = "kpi" | "line" | "barDow" | "pie" | "compare" | "alerts" | "table" | "momentum" | "forecast";
 
 export interface WidgetSpec {
   id: string;
@@ -77,6 +77,10 @@ export function routePrompt(prompt: string): WidgetSpec[] {
       span: 2,
     });
   }
+  if (/\bpie\b|share|composition|proportion|\bmix\b|donut/.test(p)) {
+    const m = metric ?? "Revenue";
+    out.push({ id: id(), type: "pie", title: `${m} share by day of week`, metric: m, span: 1 });
+  }
   if (/day of week|weekday|by day|which day|seasonal|cadence|pattern/.test(p)) {
     const m = metric ?? "Revenue";
     out.push({ id: id(), type: "barDow", title: `${m} by day of week`, metric: m, span: 1 });
@@ -132,20 +136,31 @@ export const removeWidget = (name: string, widgetId: string): void => {
 
 export const clearDashboard = (name: string): void => write(name, []);
 
+/** Charts every company's dashboard opens with — colorful, universal metrics (no ROAS/CPA so nothing renders empty). */
+const defaultWidgets = (): WidgetSpec[] => [
+  { id: id(), type: "kpi", title: "KPI summary", span: 2 },
+  { id: id(), type: "line", title: "Revenue over time", metric: "Revenue", span: 1 },
+  { id: id(), type: "line", title: "Ad spend over time", metric: "Total Adspend", span: 1 },
+  { id: id(), type: "pie", title: "Revenue share by day of week", metric: "Revenue", span: 1 },
+  { id: id(), type: "barDow", title: "Ad spend by day of week", metric: "Total Adspend", span: 1 },
+  { id: id(), type: "momentum", title: "Momentum — vs yesterday · week · month", span: 2 },
+];
+
 /**
- * Seed the always-on period-comparison widget once per company, so every
- * dashboard starts with it. Idempotent and removable — a per-company flag means
- * it won't reappear after the user deletes it.
+ * Seed a polished starter dashboard once per company, so every dashboard opens
+ * with charts already displayed. Removable — a per-company flag means the set
+ * won't reappear after the user clears it. Preserves any widgets the user added
+ * of other types; replaces prior auto-seeded defaults (versioned key).
  */
 export const ensureDefaultWidgets = (name: string): void => {
   if (typeof window === "undefined") return;
-  const seededKey = `ampulse:dashboard-seeded:${name}`;
+  const seededKey = `ampulse:dashboard-seeded-v2:${name}`;
   if (localStorage.getItem(seededKey)) return;
   localStorage.setItem(seededKey, "1");
-  const existing = getDashboard(name);
-  if (!existing.some((w) => w.type === "momentum")) {
-    write(name, [{ id: id(), type: "momentum", title: "Momentum — vs yesterday · week · month", span: 2 }, ...existing]);
-  }
+  const defaults = defaultWidgets();
+  const defaultTypes = new Set(defaults.map((w) => w.type));
+  const kept = getDashboard(name).filter((w) => !defaultTypes.has(w.type));
+  write(name, [...defaults, ...kept]);
 };
 
 export const subscribeDashboard = (cb: () => void): (() => void) => {

@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { DailyBriefing } from "@/components/home/daily-briefing";
+import { AnimatedContent } from "@/components/reactbits/animated-content";
+import { CountUp } from "@/components/reactbits/count-up";
+import { SpotlightCard } from "@/components/reactbits/spotlight-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Dataset } from "@/lib/databricks/analytics";
 
@@ -11,7 +14,7 @@ type State =
   | { kind: "error"; message: string }
   | { kind: "ready"; datasets: Dataset[] };
 
-export function Dashboard() {
+export function Dashboard({ userName }: { userName: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
@@ -29,18 +32,27 @@ export function Dashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Live advertising performance, straight from Databricks.
-        </p>
+    <main className="mx-auto max-w-7xl px-8 py-8">
+      <DailyBriefing userName={userName} />
+
+      <div className="mb-5 flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            Live advertising performance, straight from Databricks.
+          </p>
+        </div>
+        {state.kind === "ready" && state.datasets.length > 0 && (
+          <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
+            {state.datasets.length} accounts
+          </span>
+        )}
       </div>
 
       {state.kind === "loading" && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-xl" />
+            <Skeleton key={i} className="h-52 w-full rounded-2xl" />
           ))}
         </div>
       )}
@@ -59,75 +71,68 @@ export function Dashboard() {
       )}
 
       {state.kind === "ready" && state.datasets.length > 0 && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {state.datasets.map((d) => (
-            <div key={d.name} className="group">
-              <Card className="h-full overflow-hidden border-primary/10 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-lg group-hover:shadow-primary/5">
-                {/* Blue accent strip */}
-                <div className="h-1.5 bg-gradient-to-r from-primary to-primary/40" aria-hidden />
-                <CardContent className="flex h-full flex-col gap-5 p-6">
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-base font-semibold text-primary ring-1 ring-inset ring-primary/15">
-                      {d.label.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold leading-tight">{d.label}</p>
-                      <p className="text-xs text-muted-foreground">Advertising performance</p>
-                    </div>
-                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-                      Live
-                    </span>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {state.datasets.map((d, i) => (
+            <AnimatedContent key={d.name} delay={i * 60} className="group">
+              <SpotlightCard className="flex h-full flex-col rounded-2xl border-border p-5 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/30 group-hover:shadow-md">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-base font-bold text-primary ring-1 ring-inset ring-primary/15">
+                    {d.label.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-lg font-semibold leading-tight tracking-tight">{d.label}</p>
+                    <p className="text-[13px] text-muted-foreground">Advertising performance</p>
                   </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                    <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+                    Live
+                  </span>
+                </div>
 
-                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3">
-                    <div>
-                      {d.usesCpa ? (
-                        <>
-                          <p className="text-sm font-semibold tabular-nums">
-                            {d.avgCpa != null ? `$${d.avgCpa.toLocaleString("en", { maximumFractionDigits: 2 })}` : "—"}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">Avg CPA</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm font-semibold tabular-nums">
-                            {d.avgRoas != null ? `${d.avgRoas.toLocaleString("en", { maximumFractionDigits: 1 })}×` : "—"}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">Avg ROAS</p>
-                        </>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold tabular-nums">
-                        {d.totalAdspend != null
-                          ? `$${(d.totalAdspend / 1000).toLocaleString("en", { maximumFractionDigits: 0 })}K`
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-[26px] font-bold leading-none tracking-tight tabular-nums">
+                      {d.usesCpa
+                        ? d.avgCpa != null
+                          ? <CountUp to={d.avgCpa} decimals={2} prefix="$" />
+                          : "—"
+                        : d.avgRoas != null
+                          ? <CountUp to={d.avgRoas} decimals={1} suffix="×" />
                           : "—"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">Total spend</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold tabular-nums">{d.rowCount.toLocaleString()}</p>
-                      <p className="text-[11px] text-muted-foreground">Days</p>
-                    </div>
+                    </p>
+                    <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {d.usesCpa ? "Avg CPA" : "Avg ROAS"}
+                    </p>
                   </div>
+                  <div>
+                    <p className="text-[26px] font-bold leading-none tracking-tight tabular-nums">
+                      {d.totalAdspend != null ? <CountUp to={d.totalAdspend / 1000} decimals={0} prefix="$" suffix="K" /> : "—"}
+                    </p>
+                    <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total spend</p>
+                  </div>
+                  <div>
+                    <p className="text-[26px] font-bold leading-none tracking-tight tabular-nums">
+                      <CountUp to={d.rowCount} decimals={0} />
+                    </p>
+                    <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Days</p>
+                  </div>
+                </div>
 
-                  <div className="mt-auto grid gap-2 text-xs">
-                    <span className="text-muted-foreground">
-                      {d.latestDate ? `Latest ${d.latestDate}` : "No data yet"}
-                    </span>
-                    <div className="flex items-center justify-between">
-                      <Link href={`/datasets/${d.name}`} className="text-muted-foreground hover:text-foreground">
-                        Data →
-                      </Link>
-                      <Link href={`/datasets/${d.name}/analytics`} className="font-medium text-primary hover:underline">
-                        Analytics →
-                      </Link>
-                    </div>
+                <div className="mt-6 flex items-center justify-between border-t border-border pt-3.5 text-[13px]">
+                  <span className="text-muted-foreground">
+                    {d.latestDate ? `Latest ${d.latestDate}` : "No data yet"}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <Link href={`/datasets/${d.name}`} className="font-semibold text-primary hover:underline">
+                      Open →
+                    </Link>
+                    <Link href={`/datasets/${d.name}/analytics`} className="text-muted-foreground hover:text-foreground">
+                      Analytics →
+                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </SpotlightCard>
+            </AnimatedContent>
           ))}
         </div>
       )}
